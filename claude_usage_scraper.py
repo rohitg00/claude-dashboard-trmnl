@@ -210,19 +210,22 @@ def extract_metrics(text: str) -> dict:
     for i, line in enumerate(lines):
         low = line.lower().strip()
 
-        # Identify which block this header line introduces
         if "current session" in low and "session" not in metrics:
             key = "session"
         elif "current week" in low and "sonnet" not in low and "week_all" not in metrics:
             key = "week_all"
         elif "current week" in low and "sonnet" in low and "week_sonnet" not in metrics:
             key = "week_sonnet"
+        elif "extra usage" in low and "extra" not in metrics:
+            key = "extra"
         else:
             continue
 
-        # The next few lines contain the bar + "X% used" and "Resets ..."
         block = "\n".join(lines[i : i + 4])
-        entry = _parse_block(block)
+        if key == "extra":
+            entry = _parse_extra_block(block)
+        else:
+            entry = _parse_block(block)
         if entry:
             metrics[key] = entry
 
@@ -246,6 +249,34 @@ def _parse_block(block: str) -> dict | None:
         entry["pct"] = int(pct_m.group(1))
 
     # Reset line — "Resets <everything after>"
+    reset_m = re.search(r"Resets\s+(.+)", block)
+    if reset_m:
+        entry["reset"] = reset_m.group(1).strip()
+
+    return entry if entry else None
+
+
+def _parse_extra_block(block: str) -> dict | None:
+    """
+    Parse the extra usage block.
+
+    Format:
+      Extra usage
+      ██████████████████████████████████████████▎        84% used
+      $42.30 / $50.00 spent · Resets May 1 (Europe/London)
+    """
+    entry: dict = {}
+
+    pct_m = re.search(r"(\d+)\s*%", block)
+    if pct_m:
+        entry["pct"] = int(pct_m.group(1))
+
+    # "$42.30 / $50.00 spent"
+    spent_m = re.search(r"\$([0-9,.]+)\s*/\s*\$([0-9,.]+)\s*spent", block)
+    if spent_m:
+        entry["spent"] = spent_m.group(1)
+        entry["limit"] = spent_m.group(2)
+
     reset_m = re.search(r"Resets\s+(.+)", block)
     if reset_m:
         entry["reset"] = reset_m.group(1).strip()

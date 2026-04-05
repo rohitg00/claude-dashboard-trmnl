@@ -1,103 +1,217 @@
-<!-- Claude Code Dashboard — Full view (800x480) -->
 
-<div class="view">
-  <div class="layout layout--col gap--large">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap');
+  .trmnl{width:800px;height:480px;background:#fff;color:#000;font-family:'IBM Plex Mono',monospace;overflow:hidden;display:grid;grid-template-rows:auto 1px auto 1px auto auto;padding:0;box-sizing:border-box;border:2px solid #000}
+  .divider{background:#000;width:100%}
+  .row{display:flex;width:100%}
+  .col-divider{width:1px;background:#000;flex-shrink:0}
+  .header{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;background:#000;color:#fff}
+  .header-title{font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+  .header-right{display:flex;gap:24px;align-items:center;font-size:11px;letter-spacing:.05em}
+  .header-tag{border:1px solid rgba(255,255,255,.5);padding:2px 8px;font-size:10px}
+  .cost-section{flex:1;padding:16px 20px;display:flex;flex-direction:column;justify-content:space-between}
+  .cost-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#666;margin-bottom:4px}
+  .cost-num{font-size:36px;font-weight:600;line-height:1;letter-spacing:-.02em}
+  .cost-sub{font-size:11px;color:#555;margin-top:4px}
+  .cost-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0}
+  .cost-item{padding:8px 0}
+  .cost-item+.cost-item{border-left:1px solid #000;padding-left:14px}
+  .progress-section{width:260px;padding:16px 20px;display:flex;flex-direction:column;gap:14px;border-left:1px solid #000}
+  .prog-row{display:flex;flex-direction:column;gap:5px}
+  .prog-header{display:flex;justify-content:space-between;align-items:baseline}
+  .prog-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#333}
+  .prog-pct{font-size:18px;font-weight:600;letter-spacing:-.02em}
+  .prog-bar-bg{width:100%;height:10px;background:#e8e8e8;position:relative;border:1px solid #999}
+  .prog-bar-fill{height:100%;background:#000;position:absolute;top:0;left:0}
+  .prog-bar-fill.stripes{background:repeating-linear-gradient(45deg,#000 0,#000 3px,transparent 3px,transparent 6px)}
+  .prog-reset{font-size:9px;color:#888;margin-top:2px}
+  .mid-section{flex:1;padding:12px 20px;display:flex;flex-direction:column;justify-content:center;gap:4px}
+  .stat-row{display:flex;gap:0}
+  .stat-block{flex:1;display:flex;flex-direction:column}
+  .stat-block+.stat-block{border-left:1px solid #ccc;padding-left:16px}
+  .stat-val{font-size:22px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
+  .stat-lbl{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#777;margin-top:2px}
+  .bottom-row{display:flex;width:100%;height:100%}
+  .sessions-section{flex:1;padding:12px 20px;display:flex;flex-direction:column;gap:10px}
+  .tokens-section{flex:1;padding:12px 20px;border-left:1px solid #000}
+  .setup-section{width:200px;padding:12px 16px;border-left:1px solid #000;background:#f5f5f5}
+  .sec-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#666;margin-bottom:6px}
+  .inline-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px}
+  .inline-val{font-size:15px;font-weight:600;line-height:1}
+  .inline-sub{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.06em}
+  .token-rows{display:flex;flex-direction:column;gap:3px}
+  .token-row{display:flex;justify-content:space-between;font-size:10px;color:#555}
+  .token-row span:last-child{font-weight:600;color:#000}
+  .setup-items{display:flex;flex-direction:column;gap:5px}
+  .setup-item{font-size:10px;display:flex;justify-content:space-between;align-items:center}
+  .setup-item-val{font-weight:600}
+  .pill{background:#000;color:#fff;font-size:8px;padding:1px 6px;letter-spacing:.06em}
+  .dot-row{display:flex;gap:3px;margin-top:3px}
+  .dot{width:7px;height:7px;border:1px solid #000}
+  .dot.filled{background:#000}
+  .footer{display:flex;align-items:center;justify-content:space-between;padding:5px 20px;background:#f0f0f0;border-top:1px solid #ccc}
+  .footer-l{font-size:9px;color:#555;letter-spacing:.06em}
+  .footer-r{font-size:9px;color:#555;letter-spacing:.06em}
+  .proj-num{font-size:11px;font-weight:600;color:#000}
+</style>
 
-    <!-- Row 1: Usage Bars + Costs -->
-    <div class="columns">
-      <div class="column stretch-x">
-        <div class="layout layout--col gap--medium">
+<div class="trmnl">
 
-          <div class="progress-bar lg:progress-bar--large stretch-x">
-            <div class="content">
-              <span class="label lg:label--xlarge">Session</span>
-              <span class="value value--xxsmall lg:value--small">{{ session_pct }}%</span>
-            </div>
-            <div class="track">
-              <div class="fill" style="width:{{ session_pct }}%"></div>
-            </div>
-          </div>
-
-          <div class="progress-bar lg:progress-bar--large stretch-x">
-            <div class="content">
-              <span class="label lg:label--xlarge">Week &middot; All</span>
-              <span class="value value--xxsmall lg:value--small">{{ week_all_pct }}%</span>
-            </div>
-            <div class="track">
-              <div class="fill" style="width:{{ week_all_pct }}%"></div>
-            </div>
-          </div>
-
-          <div class="progress-bar lg:progress-bar--large stretch-x">
-            <div class="content">
-              <span class="label lg:label--xlarge">Sonnet</span>
-              <span class="value value--xxsmall lg:value--small">{{ week_sonnet_pct }}%</span>
-            </div>
-            <div class="track">
-              <div class="fill" style="width:{{ week_sonnet_pct }}%"></div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      <div class="column">
-        <div class="layout layout--col gap--medium">
-          <div class="layout layout--col">
-            <span class="label label--small lg:label--base">Today</span>
-            <span class="value value--small lg:value--large">${{ today_cost }}</span>
-          </div>
-          <div class="layout layout--col">
-            <span class="label label--small lg:label--base">Week</span>
-            <span class="value value--small lg:value--large">${{ week_cost }}</span>
-          </div>
-          <div class="layout layout--col">
-            <span class="label label--small lg:label--base">Month</span>
-            <span class="value value--small lg:value--large">${{ month_cost }}</span>
-          </div>
-        </div>
-      </div>
+  <div class="header">
+    <div class="header-title">Claude Code &middot; Usage Dashboard</div>
+    <div class="header-right">
+      <span class="header-tag">{{ primary_model }}</span>
+      <span>{{ updated_at }}</span>
     </div>
-
-    <!-- Row 2: Stats — 4 columns -->
-    <div class="columns">
-      <div class="column">
-        <div class="layout layout--col">
-          <span class="value value--small lg:value--large">{{ active_today }}</span>
-          <span class="label label--small lg:label--base">Active</span>
-        </div>
-      </div>
-      <div class="column">
-        <div class="layout layout--col">
-          <span class="value value--small lg:value--large">{{ total_sessions }}</span>
-          <span class="label label--small lg:label--base">Sessions</span>
-        </div>
-      </div>
-      <div class="column">
-        <div class="layout layout--col">
-          <span class="value value--small lg:value--large">{{ today_tokens }}</span>
-          <span class="label label--small lg:label--base">Tokens</span>
-        </div>
-      </div>
-      <div class="column">
-        <div class="layout layout--col">
-          <span class="label label--small label--inverted lg:label--base">{{ top_model }}</span>
-          <span class="description lg:description--large">{{ top_model_pct }}% cost</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Row 3: Requests today -->
-    <div class="layout layout--row gap--large">
-      <span class="label lg:label--large">{{ today_requests }} requests today</span>
-      <span class="label lg:label--large">&middot;</span>
-      <span class="label lg:label--large">Resets {{ session_reset_short }}</span>
-    </div>
-
   </div>
-</div>
 
-<div class="title_bar">
-  <span class="title">Claude Code Dashboard</span>
-  <span class="instance">{{ updated_at }}</span>
+  <div class="row" style="flex:0 0 140px">
+    <div class="cost-section">
+      <div>
+        <div class="cost-label">Extra Usage</div>
+        <div class="cost-num">${{ extra_spent }}</div>
+        <div class="cost-sub">${{ extra_limit }} limit &middot; {{ extra_pct }}% used &middot; resets {{ extra_reset }}</div>
+      </div>
+      <div class="cost-grid">
+        <div class="cost-item">
+          <div class="cost-label">This Week</div>
+          <div style="font-size:22px;font-weight:600">${{ week_cost }}</div>
+        </div>
+        <div class="cost-item">
+          <div class="cost-label">Month (est)</div>
+          <div style="font-size:22px;font-weight:600">${{ month_cost }}</div>
+        </div>
+        <div class="cost-item">
+          <div class="cost-label">All Time</div>
+          <div style="font-size:22px;font-weight:600">${{ all_time_cost }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="progress-section">
+      <div class="prog-row">
+        <div class="prog-header">
+          <div class="prog-label">Session</div>
+          <div class="prog-pct">{{ session_pct }}%</div>
+        </div>
+        <div class="prog-bar-bg">
+          <div class="prog-bar-fill" style="width:{{ session_pct }}%"></div>
+        </div>
+        <div class="prog-reset">Resets {{ session_reset_short }}</div>
+      </div>
+      <div class="prog-row">
+        <div class="prog-header">
+          <div class="prog-label">Week &middot; All Models</div>
+          <div class="prog-pct">{{ week_all_pct }}%</div>
+        </div>
+        <div class="prog-bar-bg">
+          <div class="prog-bar-fill stripes" style="width:{{ week_all_pct }}%"></div>
+        </div>
+        <div class="prog-reset">Resets {{ week_all_reset_short }}</div>
+      </div>
+      <div class="prog-row" style="margin-top:4px">
+        <div class="prog-header">
+          <div class="prog-label">Extra Limit</div>
+          <div class="prog-pct" style="color:#555">{{ extra_pct }}%</div>
+        </div>
+        <div class="prog-bar-bg">
+          <div class="prog-bar-fill" style="width:{{ extra_pct }}%;background:repeating-linear-gradient(90deg,#000 0,#000 4px,#444 4px,#444 8px)"></div>
+        </div>
+        <div class="prog-reset">${{ extra_spent }} / ${{ extra_limit }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="row" style="flex:0 0 72px;align-items:stretch">
+    <div class="mid-section">
+      <div class="stat-row">
+        <div class="stat-block">
+          <div class="stat-val">{{ today_tokens }}</div>
+          <div class="stat-lbl">Tokens Total</div>
+        </div>
+        <div class="stat-block" style="border-left:1px solid #ccc;padding-left:16px">
+          <div class="stat-val">{{ today_requests }}</div>
+          <div class="stat-lbl">Requests</div>
+        </div>
+        <div class="stat-block" style="border-left:1px solid #ccc;padding-left:16px">
+          <div class="stat-val">{{ cache_pct }}%</div>
+          <div class="stat-lbl">Cache Hit</div>
+        </div>
+        <div class="stat-block" style="border-left:1px solid #ccc;padding-left:16px">
+          <div class="stat-val">${{ cost_per_req }}</div>
+          <div class="stat-lbl">Per Request</div>
+        </div>
+        <div class="stat-block" style="border-left:1px solid #ccc;padding-left:16px">
+          <div class="stat-val">${{ avg_session_cost }}</div>
+          <div class="stat-lbl">Per Session</div>
+        </div>
+        <div class="stat-block" style="border-left:1px solid #ccc;padding-left:16px">
+          <div class="stat-val">${{ cache_savings }}</div>
+          <div class="stat-lbl">Cached Savings</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="bottom-row" style="flex:1">
+    <div class="sessions-section">
+      <div class="sec-label">Sessions</div>
+      <div class="inline-stats">
+        <div><div class="inline-val">{{ active_now }}</div><div class="inline-sub">Running Now</div></div>
+        <div><div class="inline-val">{{ sessions_today }}</div><div class="inline-sub">Today</div></div>
+        <div><div class="inline-val">{{ month_sessions }}</div><div class="inline-sub">This Month</div></div>
+        <div><div class="inline-val">{{ all_sessions }}</div><div class="inline-sub">All Time</div></div>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:4px">
+        <div>
+          <div style="font-size:18px;font-weight:600">{{ streak }}</div>
+          <div class="inline-sub">Day Streak</div>
+        </div>
+        <div>
+          <div style="font-size:18px;font-weight:600">{{ hours_today }}</div>
+          <div class="inline-sub">Coded Today</div>
+        </div>
+        <div>
+          <div style="font-size:18px;font-weight:600">{{ active_days }}</div>
+          <div class="inline-sub">Active Days</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-divider"></div>
+
+    <div class="tokens-section">
+      <div class="sec-label">Cost Breakdown</div>
+      <div class="token-rows">
+        <div class="token-row"><span>Today {{ cost_trend }}</span><span>${{ today_cost }}</span></div>
+        <div class="token-row"><span>Requests ({{ today_requests }})</span><span>${{ cost_per_req }}/req</span></div>
+        <div class="token-row"><span>Tokens ({{ today_tokens }})</span><span>{{ cache_pct }}% cached</span></div>
+        <div class="token-row"><span>Avg session cost</span><span>${{ avg_session_cost }}</span></div>
+        <div class="token-row" style="border-top:1px solid #000;padding-top:4px;margin-top:2px"><span style="font-weight:600">Projected (month)</span><span style="font-weight:600;font-size:14px">${{ projected_cost }}</span></div>
+      </div>
+    </div>
+
+    <div class="col-divider"></div>
+
+    <div class="setup-section">
+      <div class="sec-label">Setup</div>
+      <div class="setup-items">
+        <div class="setup-item"><span>Plugins</span><span class="setup-item-val"><span class="pill">{{ plugin_count }}</span></span></div>
+        <div class="setup-item"><span>MCPs Active</span><span class="setup-item-val"><span class="pill">{{ mcp_count }}</span></span></div>
+        <div class="setup-item"><span>MCP Stack</span><span class="setup-item-val" style="font-size:9px">{{ mcp_names }}</span></div>
+        <div class="setup-item" style="margin-top:4px"><span>Model</span><span class="setup-item-val" style="font-size:9px">{{ primary_model }}</span></div>
+        <div class="setup-item"><span>Calls</span><span class="setup-item-val" style="font-size:9px">{{ model_line }}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-l">Claude Code Dashboard &middot; {{ streak }}-day streak</div>
+    <div class="footer-r">Projected: <span class="proj-num">${{ projected_cost }}</span>/mo</div>
+  </div>
+
 </div>

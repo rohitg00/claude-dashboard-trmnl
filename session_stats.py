@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-session_stats.py — Parse Claude Code session files to extract cost and usage stats.
+session_stats.py — Comprehensive Claude Code metrics from local session files.
 
-Reads ~/.claude/projects/*/*.jsonl directly. No external services needed.
+Reads ~/.claude/ directly — sessions, plugins, MCPs. No external services.
 """
 
 import json
@@ -11,6 +11,11 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 PROJECTS_DIR = Path.home() / ".claude" / "projects"
+PLUGINS_FILE = Path.home() / ".claude" / "plugins" / "installed_plugins.json"
+SETTINGS_FILE = Path.home() / ".claude" / "settings.json"
+DESKTOP_CONFIG = (
+    Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
+)
 
 PRICING = {
     "opus": {"input": 15, "output": 75, "cache_read": 1.5, "cache_write": 18.75},
@@ -19,229 +24,283 @@ PRICING = {
 }
 
 
-def _model_tier(model: str) -> str:
-    if "opus" in model:
-        return "opus"
-    if "haiku" in model:
-        return "haiku"
+def _tier(model: str) -> str:
+    if "opus" in model: return "opus"
+    if "haiku" in model: return "haiku"
     return "sonnet"
 
 
-def _cost(model: str, inp: int, out: int, cache_read: int, cache_write: int) -> float:
-    p = PRICING.get(_model_tier(model), PRICING["sonnet"])
-    return (
-        (inp / 1_000_000) * p["input"]
-        + (out / 1_000_000) * p["output"]
-        + (cache_read / 1_000_000) * p["cache_read"]
-        + (cache_write / 1_000_000) * p["cache_write"]
-    )
+def _cost(model, inp, out, cr, cw):
+    p = PRICING.get(_tier(model), PRICING["sonnet"])
+    return (inp/1e6)*p["input"] + (out/1e6)*p["output"] + (cr/1e6)*p["cache_read"] + (cw/1e6)*p["cache_write"]
 
 
-def _fmt_cost(v: float) -> str:
-    if v >= 1000:
-        return f"{v / 1000:.1f}k"
+def _fc(v):
+    if v >= 10000: return f"{v/1000:.0f}k"
+    if v >= 1000: return f"{v/1000:.1f}k"
+    if v >= 100: return f"{v:.0f}"
     return f"{v:.2f}"
 
 
-def _fmt_tokens(v: int) -> str:
-    if v >= 1_000_000:
-        return f"{v / 1_000_000:.1f}M"
-    if v >= 1_000:
-        return f"{v / 1_000:.0f}K"
+def _ft(v):
+    if v >= 1e9: return f"{v/1e9:.1f}B"
+    if v >= 1e6: return f"{v/1e6:.1f}M"
+    if v >= 1e3: return f"{v/1e3:.0f}K"
     return str(v)
+
+
+def _plugins():
+    try:
+        return len(json.loads(PLUGINS_FILE.read_text()).get("plugins", {}))
+    except: return 0
+
+
+def _mcps():
+    names = set()
+    for p in [SETTINGS_FILE, DESKTOP_CONFIG]:
+        try:
+            for k in json.loads(p.read_text()).get("mcpServers", {}):
+                names.add(k)
+        except: pass
+    return len(names), ", ".join(sorted(names)[:5]) or "none"
 
 
 def gather_stats() -> dict:
     now = datetime.now()
-    today_str = now.strftime("%Y-%m-%d")
+    today = now.strftime("%Y-%m-%d")
+    yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d")
     week_ago = now - timedelta(days=7)
     month_start = now.replace(day=1)
+    active_cutoff = now - timedelta(minutes=60)
 
-    today_cost = 0.0
-    week_cost = 0.0
-    month_cost = 0.0
-    all_time_cost = 0.0
-    today_tokens = 0
-    today_requests = 0
-    total_sessions = 0
-    active_today = 0
-    model_costs: dict[str, float] = {}
+    # Accumulators
+    today_cost = 0.0; yesterday_cost = 0.0; week_cost = 0.0; month_cost = 0.0; all_time_cost = 0.0
+    today_in = 0; today_out = 0; today_cr = 0; today_cw = 0; today_reqs = 0
+    all_sessions = 0; month_sessions = 0; active_now = 0; sessions_today = 0
+    model_costs = {}; model_reqs = {}; daily_costs = {}; daily_reqs = {}
+    project_costs = {}; project_sessions = {}
+    days_with_activity = set()
+    today_first_ts = None; today_last_ts = None
+    longest_session_msgs = 0; longest_session_proj = ""
 
     if not PROJECTS_DIR.exists():
         return _default()
 
-    for project_dir in PROJECTS_DIR.iterdir():
-        if not project_dir.is_dir():
-            continue
-        for jsonl_file in project_dir.glob("*.jsonl"):
-            if "memory" in jsonl_file.name:
+    for pdir in PROJECTS_DIR.iterdir():
+        if not pdir.is_dir(): continue
+        proj = _proj_name(pdir.name)
+
+        for f in pdir.glob("*.jsonl"):
+            if "memory" in f.name: continue
+            try: mtime = datetime.fromtimestamp(f.stat().st_mtime)
+            except: continue
+
+            all_sessions += 1
+            is_month = mtime >= month_start
+            is_today = mtime.strftime("%Y-%m-%d") == today
+            is_active = mtime >= active_cutoff
+
+            if is_month: month_sessions += 1
+            if is_today: sessions_today += 1
+            if is_active: active_now += 1
+
+            sd = _parse(f, today, yesterday, week_ago)
+            all_time_cost += sd["cost"]
+
+            if not is_month:
                 continue
 
-            try:
-                mtime = datetime.fromtimestamp(jsonl_file.stat().st_mtime)
-            except OSError:
-                continue
+            month_cost += sd["cost"]
+            today_cost += sd["today_cost"]
+            yesterday_cost += sd["yesterday_cost"]
+            week_cost += sd["week_cost"]
 
-            if mtime < month_start:
-                continue
+            if is_today:
+                today_in += sd["t_in"]; today_out += sd["t_out"]
+                today_cr += sd["t_cr"]; today_cw += sd["t_cw"]
+                today_reqs += sd["t_reqs"]
+                if sd["t_first"] and (not today_first_ts or sd["t_first"] < today_first_ts):
+                    today_first_ts = sd["t_first"]
+                if sd["t_last"] and (not today_last_ts or sd["t_last"] > today_last_ts):
+                    today_last_ts = sd["t_last"]
+                if sd["msgs"] > longest_session_msgs:
+                    longest_session_msgs = sd["msgs"]
+                    longest_session_proj = proj
 
-            total_sessions += 1
-            if mtime.strftime("%Y-%m-%d") == today_str:
-                active_today += 1
+            for t, c in sd["m_costs"].items():
+                model_costs[t] = model_costs.get(t, 0) + c
+            for t, r in sd["m_reqs"].items():
+                model_reqs[t] = model_reqs.get(t, 0) + r
+            for d, c in sd["d_costs"].items():
+                daily_costs[d] = daily_costs.get(d, 0) + c
+                daily_reqs[d] = daily_reqs.get(d, 0) + 1
+                days_with_activity.add(d)
 
-            session_cost, session_tokens, session_requests, session_models = (
-                _parse_session(jsonl_file, month_start)
-            )
+            if sd["cost"] > 0:
+                project_costs[proj] = project_costs.get(proj, 0) + sd["cost"]
+                project_sessions[proj] = project_sessions.get(proj, 0) + 1
 
-            all_time_cost += session_cost
+    # Model
+    total_m_reqs = sum(model_reqs.values()) or 1
+    primary = max(model_reqs, key=model_reqs.get) if model_reqs else "—"
+    primary_pct = round(model_reqs.get(primary, 0) / total_m_reqs * 100) if model_reqs else 0
+    model_line = " / ".join(
+        f"{t}:{model_reqs[t]}" for t in ["opus","sonnet","haiku"]
+        if t in model_reqs and model_reqs[t]/total_m_reqs >= 0.01
+    ) or (f"{primary}:{model_reqs.get(primary,0)}" if primary != "—" else "—")
 
-            for tier, c in session_models.items():
-                model_costs[tier] = model_costs.get(tier, 0) + c
+    # Tokens
+    today_tokens = today_in + today_out + today_cr + today_cw
+    total_input = today_in + today_cr + today_cw
+    cache_pct = round(today_cr / total_input * 100) if total_input > 0 else 0
+    no_cache_cost = _cost("opus", total_input, today_out, 0, 0) if total_input > 0 else 0
+    cache_savings = max(0, no_cache_cost - today_cost)
 
-            s_today, s_week = _split_cost_by_period(
-                jsonl_file, today_str, week_ago, month_start
-            )
-            today_cost += s_today
-            if mtime >= week_ago:
-                week_cost += session_cost
-            month_cost += session_cost
+    # Cost metrics
+    cost_per_req = today_cost / today_reqs if today_reqs > 0 else 0
+    cost_trend = "—"
+    if yesterday_cost > 0:
+        ch = ((today_cost - yesterday_cost) / yesterday_cost) * 100
+        cost_trend = f"+{ch:.0f}%" if ch > 0 else f"{ch:.0f}%"
+    days_in_month = now.day
+    daily_avg = month_cost / days_in_month if days_in_month > 0 else 0
+    projected = month_cost + daily_avg * max(0, 30 - days_in_month)
+    avg_session_cost = month_cost / month_sessions if month_sessions > 0 else 0
 
-            if mtime.strftime("%Y-%m-%d") == today_str:
-                today_tokens += session_tokens
-                today_requests += session_requests
+    # Activity
+    active_days = len([d for d in days_with_activity if d >= month_start.strftime("%Y-%m-%d")])
+    streak = 0
+    for i in range(30):
+        d = (now - timedelta(days=i)).strftime("%Y-%m-%d")
+        if d in days_with_activity: streak += 1
+        else: break
 
-    top_model = "—"
-    top_model_pct = 0
-    if model_costs:
-        top = max(model_costs, key=model_costs.get)
-        total_mc = sum(model_costs.values())
-        if total_mc > 0:
-            top_model = top
-            top_model_pct = round(model_costs[top] / total_mc * 100)
+    # Today duration
+    hours_today = "—"
+    if today_first_ts and today_last_ts:
+        try:
+            t0 = datetime.fromisoformat(today_first_ts.replace("Z", "+00:00")).replace(tzinfo=None)
+            t1 = datetime.fromisoformat(today_last_ts.replace("Z", "+00:00")).replace(tzinfo=None)
+            mins = max(0, (t1 - t0).total_seconds() / 60)
+            if mins >= 60: hours_today = f"{mins/60:.1f}h"
+            else: hours_today = f"{mins:.0f}m"
+        except: pass
 
-    return {
-        "today_cost": _fmt_cost(today_cost),
-        "week_cost": _fmt_cost(week_cost),
-        "month_cost": _fmt_cost(month_cost),
-        "today_tokens": _fmt_tokens(today_tokens),
-        "today_requests": str(today_requests),
-        "total_sessions": str(total_sessions),
-        "active_today": str(active_today),
-        "top_model": top_model,
-        "top_model_pct": str(top_model_pct),
+    # Top project
+    top_project = max(project_costs, key=project_costs.get) if project_costs else "—"
+    top_proj_cost = _fc(project_costs.get(top_project, 0)) if top_project != "—" else "0"
+
+    # 7-day chart
+    day_data = []
+    max_dc = 0.01
+    for i in range(6, -1, -1):
+        d = (now - timedelta(days=i)).strftime("%Y-%m-%d")
+        c = daily_costs.get(d, 0.0)
+        lbl = (now - timedelta(days=i)).strftime("%a")[0]
+        day_data.append((lbl, c))
+        if c > max_dc: max_dc = c
+
+    plugin_count = _plugins()
+    mcp_count, mcp_names = _mcps()
+
+    result = {
+        # Costs
+        "today_cost": _fc(today_cost), "yesterday_cost": _fc(yesterday_cost),
+        "week_cost": _fc(week_cost), "month_cost": _fc(month_cost),
+        "all_time_cost": _fc(all_time_cost),
+        "projected_cost": _fc(projected), "daily_avg": _fc(daily_avg),
+        "cost_trend": cost_trend, "cost_per_req": f"{cost_per_req:.2f}" if cost_per_req < 10 else _fc(cost_per_req),
+        "avg_session_cost": _fc(avg_session_cost),
+        "cache_savings": _fc(cache_savings),
+        # Tokens
+        "today_tokens": _ft(today_tokens), "today_input": _ft(today_in + today_cr + today_cw),
+        "today_output": _ft(today_out), "cache_pct": str(cache_pct),
+        "today_requests": str(today_reqs),
+        # Sessions
+        "active_now": str(active_now), "sessions_today": str(sessions_today),
+        "month_sessions": str(month_sessions), "all_sessions": str(all_sessions),
+        "active_days": str(active_days), "streak": str(streak),
+        "hours_today": hours_today,
+        "longest_session": str(longest_session_msgs),
+        # Model
+        "primary_model": primary, "primary_pct": str(primary_pct),
+        "model_line": model_line,
+        # Projects
+        "top_project": top_project, "top_proj_cost": top_proj_cost,
+        # Setup
+        "plugin_count": str(plugin_count), "mcp_count": str(mcp_count), "mcp_names": mcp_names,
     }
 
+    # 7-day
+    for i, (lbl, c) in enumerate(day_data):
+        pct = min(100, round(c / max_dc * 100))
+        result[f"d{i}_lbl"] = lbl
+        result[f"d{i}_pct"] = str(pct)
+        result[f"d{i}_cost"] = _fc(c)
 
-def _parse_session(
-    path: Path, since: datetime
-) -> tuple[float, int, int, dict[str, float]]:
-    cost = 0.0
-    tokens = 0
-    requests = 0
-    models: dict[str, float] = {}
+    return result
 
+
+def _parse(path, today, yesterday, week_ago):
+    r = {"cost":0,"today_cost":0,"yesterday_cost":0,"week_cost":0,
+         "t_in":0,"t_out":0,"t_cr":0,"t_cw":0,"t_reqs":0,
+         "t_first":None,"t_last":None,"msgs":0,
+         "m_costs":{},"m_reqs":{},"d_costs":{}}
     try:
         with open(path, "r", errors="replace") as f:
             for line in f:
-                if not line.strip():
-                    continue
-                try:
-                    entry = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-
-                msg = entry.get("message")
-                if not isinstance(msg, dict):
-                    continue
-                if msg.get("role") != "assistant":
-                    continue
-
-                usage = msg.get("usage")
-                if not isinstance(usage, dict):
-                    continue
-
-                inp = usage.get("input_tokens", 0)
-                out = usage.get("output_tokens", 0)
-                cache_read = usage.get("cache_read_input_tokens", 0)
-                cache_write = usage.get("cache_creation_input_tokens", 0)
-                model = msg.get("model", "claude-sonnet-4-6")
-                tier = _model_tier(model)
-
-                c = _cost(model, inp, out, cache_read, cache_write)
-                cost += c
-                tokens += inp + out + cache_read + cache_write
-                requests += 1
-                models[tier] = models.get(tier, 0) + c
-    except OSError:
-        pass
-
-    return cost, tokens, requests, models
+                if not line.strip(): continue
+                try: e = json.loads(line)
+                except: continue
+                m = e.get("message")
+                if not isinstance(m, dict) or m.get("role") != "assistant": continue
+                u = m.get("usage")
+                if not isinstance(u, dict): continue
+                ts = e.get("timestamp",""); day = ts[:10] if ts else ""
+                inp=u.get("input_tokens",0); out=u.get("output_tokens",0)
+                cr=u.get("cache_read_input_tokens",0); cw=u.get("cache_creation_input_tokens",0)
+                model=m.get("model","claude-sonnet-4-6"); t=_tier(model)
+                c=_cost(model,inp,out,cr,cw)
+                r["cost"]+=c; r["msgs"]+=1
+                r["m_costs"][t]=r["m_costs"].get(t,0)+c
+                r["m_reqs"][t]=r["m_reqs"].get(t,0)+1
+                if day: r["d_costs"][day]=r["d_costs"].get(day,0)+c
+                if day==today:
+                    r["today_cost"]+=c; r["t_in"]+=inp; r["t_out"]+=out
+                    r["t_cr"]+=cr; r["t_cw"]+=cw; r["t_reqs"]+=1
+                    if ts:
+                        if not r["t_first"] or ts<r["t_first"]: r["t_first"]=ts
+                        if not r["t_last"] or ts>r["t_last"]: r["t_last"]=ts
+                if day==yesterday: r["yesterday_cost"]+=c
+                if ts:
+                    try:
+                        dt=datetime.fromisoformat(ts.replace("Z","+00:00"))
+                        if dt.replace(tzinfo=None)>=week_ago: r["week_cost"]+=c
+                    except: pass
+    except: pass
+    return r
 
 
-def _split_cost_by_period(
-    path: Path, today_str: str, week_ago: datetime, month_start: datetime
-) -> tuple[float, float]:
-    today_cost = 0.0
-    week_cost = 0.0
-
-    try:
-        with open(path, "r", errors="replace") as f:
-            for line in f:
-                if not line.strip():
-                    continue
-                try:
-                    entry = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-
-                ts = entry.get("timestamp", "")
-                if not ts:
-                    continue
-
-                msg = entry.get("message")
-                if not isinstance(msg, dict) or msg.get("role") != "assistant":
-                    continue
-
-                usage = msg.get("usage")
-                if not isinstance(usage, dict):
-                    continue
-
-                day = ts[:10]
-                inp = usage.get("input_tokens", 0)
-                out = usage.get("output_tokens", 0)
-                cache_read = usage.get("cache_read_input_tokens", 0)
-                cache_write = usage.get("cache_creation_input_tokens", 0)
-                model = msg.get("model", "claude-sonnet-4-6")
-                c = _cost(model, inp, out, cache_read, cache_write)
-
-                if day == today_str:
-                    today_cost += c
-                try:
-                    entry_dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
-                    if entry_dt.replace(tzinfo=None) >= week_ago:
-                        week_cost += c
-                except ValueError:
-                    pass
-    except OSError:
-        pass
-
-    return today_cost, week_cost
+def _proj_name(d):
+    parts = d.lstrip("-").split("-")
+    m = [p for p in parts if p not in ("Users","rohitghumare","private","tmp") and len(p)>1]
+    return m[-1] if m else parts[-1] if parts else d
 
 
-def _default() -> dict:
-    return {
-        "today_cost": "0.00",
-        "week_cost": "0.00",
-        "month_cost": "0.00",
-        "today_tokens": "0",
-        "today_requests": "0",
-        "total_sessions": "0",
-        "active_today": "0",
-        "top_model": "—",
-        "top_model_pct": "0",
-    }
+def _default():
+    d = {k:"0" for k in ["active_now","sessions_today","month_sessions","all_sessions",
+         "active_days","streak","today_requests","cache_pct","primary_pct",
+         "plugin_count","mcp_count","longest_session"]}
+    d.update({k:"0.00" for k in ["today_cost","yesterday_cost","week_cost","month_cost",
+              "all_time_cost","projected_cost","daily_avg","cost_per_req",
+              "avg_session_cost","cache_savings"]})
+    d.update({"cost_trend":"—","today_tokens":"0","today_input":"0","today_output":"0",
+              "hours_today":"—","primary_model":"—","model_line":"—",
+              "top_project":"—","top_proj_cost":"0","mcp_names":"none"})
+    for i in range(7):
+        d[f"d{i}_lbl"]="—"; d[f"d{i}_pct"]="0"; d[f"d{i}_cost"]="0"
+    return d
 
 
 if __name__ == "__main__":
-    stats = gather_stats()
-    print(json.dumps(stats, indent=2))
+    print(json.dumps(gather_stats(), indent=2))

@@ -3,43 +3,25 @@
 <div class="view">
   <div class="layout layout--col gap--small lg:gap--medium">
 
+    <div class="layout layout--col">
+      <span class="label label--small">Today</span>
+      <span class="value value--xsmall lg:value--small">${{ today_cost }}</span>
+    </div>
+
     <div class="progress-bar progress-bar--xsmall lg:progress-bar--base stretch-x">
       <div class="content">
-        <span class="label label--small lg:label--base">Session</span>
-        <span class="label label--small lg:value--xsmall">{{ session_pct }}%</span>
+        <span class="label label--small">Session</span>
+        <span class="label label--small">{{ session_pct }}%</span>
       </div>
       <div class="track">
         <div class="fill" style="width:{{ session_pct }}%"></div>
       </div>
     </div>
 
-    <div class="progress-bar progress-bar--xsmall lg:progress-bar--base stretch-x">
-      <div class="content">
-        <span class="label label--small lg:label--base">Week</span>
-        <span class="label label--small lg:value--xsmall">{{ week_all_pct }}%</span>
-      </div>
-      <div class="track">
-        <div class="fill" style="width:{{ week_all_pct }}%"></div>
-      </div>
-    </div>
-
-    <div class="progress-bar progress-bar--xsmall lg:progress-bar--base stretch-x">
-      <div class="content">
-        <span class="label label--small lg:label--base">Sonnet</span>
-        <span class="label label--small lg:value--xsmall">{{ week_sonnet_pct }}%</span>
-      </div>
-      <div class="track">
-        <div class="fill" style="width:{{ week_sonnet_pct }}%"></div>
-      </div>
-    </div>
-
-    <div class="columns">
-      <div class="column">
-        <span class="label label--small">${{ today_cost }} today</span>
-      </div>
-      <div class="column">
-        <span class="label label--small">{{ today_tokens }} tok</span>
-      </div>
+    <div class="layout layout--row gap--small">
+      <span class="label label--small">{{ today_requests }} reqs</span>
+      <span class="label label--small">&middot;</span>
+      <span class="label label--small">{{ cache_hit_pct }}% cache</span>
     </div>
 
   </div>

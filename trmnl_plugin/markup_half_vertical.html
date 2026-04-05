@@ -3,6 +3,24 @@
 <div class="view">
   <div class="layout layout--col gap--large lg:gap--xlarge">
 
+    <!-- Cost hero -->
+    <div class="columns">
+      <div class="column">
+        <div class="layout layout--col">
+          <span class="label label--small lg:label--base">Today</span>
+          <span class="value value--small lg:value--large">${{ today_cost }}</span>
+          <span class="description">{{ cost_trend }}</span>
+        </div>
+      </div>
+      <div class="column">
+        <div class="layout layout--col">
+          <span class="label label--small lg:label--base">Month</span>
+          <span class="value value--small lg:value--large">${{ month_cost }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bars -->
     <div class="progress-bar lg:progress-bar--large stretch-x">
       <div class="content">
         <span class="label lg:label--large">Session</span>
@@ -33,34 +51,12 @@
       </div>
     </div>
 
-    <!-- Costs -->
-    <div class="columns">
-      <div class="column">
-        <div class="layout layout--col">
-          <span class="label label--small lg:label--base">Today</span>
-          <span class="value value--xsmall lg:value--small">${{ today_cost }}</span>
-        </div>
-      </div>
-      <div class="column">
-        <div class="layout layout--col">
-          <span class="label label--small lg:label--base">Week</span>
-          <span class="value value--xsmall lg:value--small">${{ week_cost }}</span>
-        </div>
-      </div>
-    </div>
-
     <!-- Stats -->
     <div class="columns">
       <div class="column">
         <div class="layout layout--col">
-          <span class="value value--xsmall lg:value--small">{{ active_today }}</span>
-          <span class="label label--small">Active</span>
-        </div>
-      </div>
-      <div class="column">
-        <div class="layout layout--col">
-          <span class="value value--xsmall lg:value--small">{{ total_sessions }}</span>
-          <span class="label label--small">Sessions</span>
+          <span class="value value--xsmall lg:value--small">{{ today_requests }}</span>
+          <span class="label label--small">Reqs</span>
         </div>
       </div>
       <div class="column">
@@ -69,12 +65,18 @@
           <span class="label label--small">Tokens</span>
         </div>
       </div>
+      <div class="column">
+        <div class="layout layout--col">
+          <span class="value value--xsmall lg:value--small">{{ cache_hit_pct }}%</span>
+          <span class="label label--small">Cache</span>
+        </div>
+      </div>
     </div>
 
   </div>
 </div>
 
 <div class="title_bar">
-  <span class="title">Claude Dashboard</span>
+  <span class="title">Claude &middot; {{ active_today }} active</span>
   <span class="instance">{{ updated_at }}</span>
 </div>

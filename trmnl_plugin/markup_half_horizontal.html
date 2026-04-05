@@ -1,72 +1,49 @@
 <!-- Claude Code Dashboard — Half Horizontal view -->
 
 <div class="view">
-  <div class="columns">
+  <div class="layout layout--col gap--medium">
 
-    <!-- Left: Usage bars -->
-    <div class="column stretch-x">
-      <div class="layout layout--col gap--medium lg:gap--large">
-
-        <div class="progress-bar progress-bar--small lg:progress-bar--base stretch-x">
-          <div class="content">
-            <span class="label label--small lg:label--base">Session</span>
-            <span class="value value--xxsmall lg:value--xsmall">{{ session_pct }}%</span>
-          </div>
-          <div class="track">
-            <div class="fill" style="width:{{ session_pct }}%"></div>
-          </div>
+    <div class="columns">
+      <div class="column">
+        <div class="layout layout--col">
+          <span class="label label--small">Today</span>
+          <span class="value value--small lg:value--large">${{ today_cost }}</span>
         </div>
-
-        <div class="progress-bar progress-bar--small lg:progress-bar--base stretch-x">
-          <div class="content">
-            <span class="label label--small lg:label--base">Week &middot; All</span>
-            <span class="value value--xxsmall lg:value--xsmall">{{ week_all_pct }}%</span>
-          </div>
-          <div class="track">
-            <div class="fill" style="width:{{ week_all_pct }}%"></div>
-          </div>
+      </div>
+      <div class="column">
+        <div class="layout layout--col">
+          <span class="label label--small">Month</span>
+          <span class="value value--small lg:value--large">${{ month_cost }}</span>
         </div>
-
-        <div class="progress-bar progress-bar--small lg:progress-bar--base stretch-x">
-          <div class="content">
-            <span class="label label--small lg:label--base">Sonnet</span>
-            <span class="value value--xxsmall lg:value--xsmall">{{ week_sonnet_pct }}%</span>
-          </div>
-          <div class="track">
-            <div class="fill" style="width:{{ week_sonnet_pct }}%"></div>
-          </div>
+      </div>
+      <div class="column">
+        <div class="layout layout--col">
+          <span class="label label--small">Session</span>
+          <span class="value value--small lg:value--large">{{ session_pct }}%</span>
         </div>
-
+      </div>
+      <div class="column">
+        <div class="layout layout--col">
+          <span class="label label--small">Week</span>
+          <span class="value value--small lg:value--large">{{ week_all_pct }}%</span>
+        </div>
       </div>
     </div>
 
-    <!-- Right: Costs + Stats -->
-    <div class="column">
-      <div class="layout layout--col gap--medium lg:gap--large">
-
-        <div class="layout layout--col">
-          <span class="label label--small lg:label--base">Today</span>
-          <span class="value value--xsmall lg:value--small">${{ today_cost }}</span>
-        </div>
-
-        <div class="layout layout--col">
-          <span class="label label--small lg:label--base">Month</span>
-          <span class="value value--xsmall lg:value--small">${{ month_cost }}</span>
-        </div>
-
-        <div class="layout layout--row gap--small">
-          <span class="label label--small">{{ active_today }} active</span>
-          <span class="label label--small">&middot;</span>
-          <span class="label label--small">{{ today_tokens }} tok</span>
-        </div>
-
-      </div>
+    <div class="layout layout--row gap--large">
+      <span class="label label--small">{{ active_now }} running</span>
+      <span class="label label--small">&middot;</span>
+      <span class="label label--small">{{ today_requests }} reqs</span>
+      <span class="label label--small">&middot;</span>
+      <span class="label label--small">{{ cache_pct }}% cache</span>
+      <span class="label label--small">&middot;</span>
+      <span class="label label--small label--inverted">{{ primary_model }}</span>
     </div>
 
   </div>
 </div>
 
 <div class="title_bar">
-  <span class="title">Claude Dashboard</span>
+  <span class="title">Claude Code &middot; {{ plugin_count }} plugins</span>
   <span class="instance">{{ updated_at }}</span>
 </div>
