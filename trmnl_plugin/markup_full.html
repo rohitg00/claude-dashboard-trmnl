@@ -63,14 +63,14 @@
     <div class="columns">
       <div class="column">
         <div class="layout layout--col">
-          <span class="value value--small lg:value--large">{{ agents_count }}</span>
-          <span class="label label--small lg:label--base">Agents</span>
+          <span class="value value--small lg:value--large">{{ active_today }}</span>
+          <span class="label label--small lg:label--base">Active</span>
         </div>
       </div>
       <div class="column">
         <div class="layout layout--col">
-          <span class="value value--small lg:value--large">{{ active_sessions }}</span>
-          <span class="label label--small lg:label--base">Active</span>
+          <span class="value value--small lg:value--large">{{ total_sessions }}</span>
+          <span class="label label--small lg:label--base">Sessions</span>
         </div>
       </div>
       <div class="column">
@@ -87,15 +87,11 @@
       </div>
     </div>
 
-    <!-- Row 3: Budget bar -->
-    <div class="progress-bar lg:progress-bar--large stretch-x">
-      <div class="content">
-        <span class="label lg:label--xlarge">Budget</span>
-        <span class="value value--xxsmall lg:value--small">{{ budget_remaining }} left</span>
-      </div>
-      <div class="track">
-        <div class="fill" style="width:{{ budget_pct }}%"></div>
-      </div>
+    <!-- Row 3: Requests today -->
+    <div class="layout layout--row gap--large">
+      <span class="label lg:label--large">{{ today_requests }} requests today</span>
+      <span class="label lg:label--large">&middot;</span>
+      <span class="label lg:label--large">Resets {{ session_reset_short }}</span>
     </div>
 
   </div>

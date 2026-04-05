@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-post_trmnl.py — Aggregate Claude usage + Rimuru cost data,
+post_trmnl.py — Aggregate Claude usage + session cost data,
 then POST to TRMNL private plugin webhook.
 
 Data sources:
-  1. claude_usage_scraper.py — Session/week usage percentages from /usage
-  2. rimuru_fetcher.py — Agent costs, model breakdown, budget from Rimuru API
+  1. claude_usage_scraper.py — Rate limit percentages from /usage
+  2. session_stats.py — Costs, tokens, sessions from ~/.claude/projects/ files
 """
 
 import json
@@ -22,7 +22,7 @@ WEBHOOK_URL = os.environ.get("TRMNL_WEBHOOK_URL", "")
 SCRAPER = Path(__file__).parent / "claude_usage_scraper.py"
 
 sys.path.insert(0, str(Path(__file__).parent))
-from rimuru_fetcher import fetch_rimuru
+from session_stats import gather_stats
 
 
 def run_scraper() -> dict:
@@ -39,7 +39,7 @@ def run_scraper() -> dict:
     return json.loads(result.stdout)
 
 
-def build_payload(metrics: dict, rimuru: dict) -> dict:
+def build_payload(metrics: dict, stats: dict) -> dict:
     def get(key, field, default="—"):
         return str(metrics.get(key, {}).get(field, default))
 
@@ -52,9 +52,6 @@ def build_payload(metrics: dict, rimuru: dict) -> dict:
     week_all_reset = get("week_all", "reset")
     week_sonnet_reset = get("week_sonnet", "reset")
 
-    rm = rimuru
-    available = rm["available"]
-
     return {
         "session_pct": get("session", "pct", "0"),
         "session_reset": session_reset,
@@ -65,17 +62,15 @@ def build_payload(metrics: dict, rimuru: dict) -> dict:
         "week_sonnet_pct": get("week_sonnet", "pct", "0"),
         "week_sonnet_reset": week_sonnet_reset,
         "week_sonnet_reset_short": strip_tz(week_sonnet_reset),
-        "today_cost": rm["today_cost"] if available else "—",
-        "week_cost": rm["week_cost"] if available else "—",
-        "month_cost": rm["month_cost"] if available else "—",
-        "today_tokens": rm["today_tokens"] if available else "—",
-        "agents_count": str(rm["agents_count"]) if available else "—",
-        "active_sessions": str(rm["active_sessions"]) if available else "—",
-        "top_model": rm["top_model"] if available else "—",
-        "top_model_pct": str(rm["top_model_pct"]) if available else "0",
-        "budget_remaining": rm["budget_remaining"] if available else "—",
-        "budget_pct": str(rm["budget_pct"]) if available else "0",
-        "has_rimuru": "1" if available else "0",
+        "today_cost": stats["today_cost"],
+        "week_cost": stats["week_cost"],
+        "month_cost": stats["month_cost"],
+        "today_tokens": stats["today_tokens"],
+        "today_requests": stats["today_requests"],
+        "total_sessions": stats["total_sessions"],
+        "active_today": stats["active_today"],
+        "top_model": stats["top_model"],
+        "top_model_pct": stats["top_model_pct"],
         "updated_at": now_fmt,
     }
 
@@ -93,7 +88,7 @@ def post_to_trmnl(merge_variables: dict) -> None:
         data=payload,
         headers={
             "Content-Type": "application/json",
-            "User-Agent": "claude-usage-trmnl/2.0",
+            "User-Agent": "claude-dashboard-trmnl/1.0",
         },
         method="POST",
     )
@@ -117,11 +112,11 @@ def main():
     metrics = data["metrics"]
     print(f"Usage metrics: {json.dumps(metrics, indent=2)}")
 
-    print("Fetching Rimuru data...")
-    rimuru = fetch_rimuru()
-    print(f"  Rimuru available: {rimuru['available']}")
+    print("Parsing session files...")
+    stats = gather_stats()
+    print(f"Session stats: {json.dumps(stats, indent=2)}")
 
-    merge_vars = build_payload(metrics, rimuru)
+    merge_vars = build_payload(metrics, stats)
     print(f"Posting to TRMNL: {json.dumps(merge_vars, indent=2)}")
 
     post_to_trmnl(merge_vars)
