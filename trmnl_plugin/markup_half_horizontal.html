@@ -1,0 +1,72 @@
+<!-- Claude Code Dashboard — Half Horizontal view -->
+
+<div class="view view--half_horizontal">
+  <div class="columns">
+
+    <!-- Left: Usage bars -->
+    <div class="column stretch-x">
+      <div class="layout layout--col gap--medium lg:gap--large">
+
+        <div class="progress-bar progress-bar--small lg:progress-bar--base stretch-x">
+          <div class="content">
+            <span class="label label--small lg:label--base">Session</span>
+            <span class="value value--xxsmall lg:value--xsmall">{{ session_pct }}%</span>
+          </div>
+          <div class="track">
+            <div class="fill" style="width:{{ session_pct }}%"></div>
+          </div>
+        </div>
+
+        <div class="progress-bar progress-bar--small lg:progress-bar--base stretch-x">
+          <div class="content">
+            <span class="label label--small lg:label--base">Week &middot; All</span>
+            <span class="value value--xxsmall lg:value--xsmall">{{ week_all_pct }}%</span>
+          </div>
+          <div class="track">
+            <div class="fill" style="width:{{ week_all_pct }}%"></div>
+          </div>
+        </div>
+
+        <div class="progress-bar progress-bar--small lg:progress-bar--base stretch-x">
+          <div class="content">
+            <span class="label label--small lg:label--base">Sonnet</span>
+            <span class="value value--xxsmall lg:value--xsmall">{{ week_sonnet_pct }}%</span>
+          </div>
+          <div class="track">
+            <div class="fill" style="width:{{ week_sonnet_pct }}%"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Right: Costs + Stats -->
+    <div class="column">
+      <div class="layout layout--col gap--medium lg:gap--large">
+
+        <div class="layout layout--col">
+          <span class="label label--small lg:label--base">Today</span>
+          <span class="value value--xsmall lg:value--small">${{ today_cost }}</span>
+        </div>
+
+        <div class="layout layout--col">
+          <span class="label label--small lg:label--base">Month</span>
+          <span class="value value--xsmall lg:value--small">${{ month_cost }}</span>
+        </div>
+
+        <div class="layout layout--row gap--small">
+          <span class="label label--small">{{ agents_count }} agents</span>
+          <span class="label label--small">&middot;</span>
+          <span class="label label--small">{{ today_tokens }} tok</span>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="title_bar">
+  <span class="title">Claude Dashboard</span>
+  <span class="instance">{{ updated_at }}</span>
+</div>

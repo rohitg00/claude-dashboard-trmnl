@@ -1,0 +1,18 @@
+- keyname: webhook_url
+  field_type: copyable_webhook_url
+  name: Webhook URL
+  description: "Copy this URL into your <code>.env</code> file during setup."
+
+- keyname: about
+  field_type: author_bio
+  name: Claude Code Dashboard for TRMNL
+  description: >
+    Full dashboard for Claude Code on e-ink. Shows rate limit bars (session,
+    weekly all-models, weekly Sonnet), cost tracking (today, week, month),
+    active sessions, token counts, agent count, top model, and budget.
+    Pulls data from Claude Code /usage and optionally
+    <a href="https://github.com/rohitg00/rimuru">Rimuru</a> (AI agent cost monitor).
+    Black and white optimized for e-ink.
+    See the <a href="https://github.com/carledwards/claude-usage-trmnl">setup guide</a>.
+  category: programming,productivity
+  github_url: "https://github.com/carledwards/claude-usage-trmnl"

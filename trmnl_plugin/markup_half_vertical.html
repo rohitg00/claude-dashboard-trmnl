@@ -1,0 +1,80 @@
+<!-- Claude Code Dashboard — Half Vertical view -->
+
+<div class="view view--half_vertical">
+  <div class="layout layout--col gap--large lg:gap--xlarge">
+
+    <div class="progress-bar lg:progress-bar--large stretch-x">
+      <div class="content">
+        <span class="label lg:label--large">Session</span>
+        <span class="value value--xxsmall lg:value--xsmall">{{ session_pct }}%</span>
+      </div>
+      <div class="track">
+        <div class="fill" style="width:{{ session_pct }}%"></div>
+      </div>
+    </div>
+
+    <div class="progress-bar lg:progress-bar--large stretch-x">
+      <div class="content">
+        <span class="label lg:label--large">Week &middot; All</span>
+        <span class="value value--xxsmall lg:value--xsmall">{{ week_all_pct }}%</span>
+      </div>
+      <div class="track">
+        <div class="fill" style="width:{{ week_all_pct }}%"></div>
+      </div>
+    </div>
+
+    <div class="progress-bar lg:progress-bar--large stretch-x">
+      <div class="content">
+        <span class="label lg:label--large">Sonnet</span>
+        <span class="value value--xxsmall lg:value--xsmall">{{ week_sonnet_pct }}%</span>
+      </div>
+      <div class="track">
+        <div class="fill" style="width:{{ week_sonnet_pct }}%"></div>
+      </div>
+    </div>
+
+    <!-- Costs -->
+    <div class="columns">
+      <div class="column">
+        <div class="layout layout--col">
+          <span class="label label--small lg:label--base">Today</span>
+          <span class="value value--xsmall lg:value--small">${{ today_cost }}</span>
+        </div>
+      </div>
+      <div class="column">
+        <div class="layout layout--col">
+          <span class="label label--small lg:label--base">Week</span>
+          <span class="value value--xsmall lg:value--small">${{ week_cost }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="columns">
+      <div class="column">
+        <div class="layout layout--col">
+          <span class="value value--xsmall lg:value--small">{{ agents_count }}</span>
+          <span class="label label--small">Agents</span>
+        </div>
+      </div>
+      <div class="column">
+        <div class="layout layout--col">
+          <span class="value value--xsmall lg:value--small">{{ active_sessions }}</span>
+          <span class="label label--small">Active</span>
+        </div>
+      </div>
+      <div class="column">
+        <div class="layout layout--col">
+          <span class="value value--xsmall lg:value--small">{{ today_tokens }}</span>
+          <span class="label label--small">Tokens</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="title_bar">
+  <span class="title">Claude Dashboard</span>
+  <span class="instance">{{ updated_at }}</span>
+</div>
