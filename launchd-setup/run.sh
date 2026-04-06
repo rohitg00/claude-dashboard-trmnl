@@ -2,15 +2,20 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$SCRIPT_DIR"
 
-if [ -f .env ]; then
+if [ -f "$PROJECT_DIR/.env" ]; then
+  set -a
+  source "$PROJECT_DIR/.env"
+  set +a
+elif [ -f .env ]; then
   set -a
   source .env
   set +a
 fi
 
-source venv/bin/activate
+source "$PROJECT_DIR/venv/bin/activate"
 
 CLAUDE_BIN="$(command -v claude 2>/dev/null || echo "")"
 if [ -n "$CLAUDE_BIN" ]; then
