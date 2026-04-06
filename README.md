@@ -1,133 +1,179 @@
 # Claude Code Dashboard → TRMNL
 
-Full dashboard for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) on a [TRMNL](https://usetrmnl.com) e-ink display. Rate limits, costs, agents, tokens — all in black and white.
+Full dashboard for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) on a [TRMNL](https://usetrmnl.com) e-ink display. Rate limits, extra usage billing, costs, sessions, cache efficiency, streak — powered by [iii-engine](https://iii.dev).
 
-## Dashboard
+## What's on the Dashboard
 
-**Full view (800x480):**
-```
-+--------------------------------------------+
-| Session  [========--]  42%  | Today  $12.50|
-| Week All [======----]  31%  | Week   $87.20|
-| Sonnet   [====------]  22%  | Month $340.00|
-|--------------------------------------------|
-|  5 Agents  |  3 Active | 847K Tok | [opus] |
-|--------------------------------------------|
-| Budget [==============------]  $160 left   |
-+--------------------------------------------+
-```
-
-**What's shown:**
-- Rate limit bars — session, weekly all-models, weekly Sonnet (from Claude Code `/usage`)
-- Cost tracking — today, week, month spend (from [Rimuru](https://github.com/rohitg00/rimuru))
-- Agent stats — count, active sessions, tokens consumed today
-- Top model — most-used model and its cost share
-- Budget — consumption bar with remaining amount
+- **Extra Usage** — real Anthropic billing ($42.30 / $50 limit, 84%)
+- **Rate Limits** — session % and week % with reset times
+- **Cost Tracking** — today, week, month, all-time (estimated from token pricing)
+- **Sessions** — running, today, month, total, streak days, hours coded
+- **Efficiency** — tokens, requests, cache hit %, cost/req, cache savings
+- **Setup** — plugins, MCPs, model breakdown
 
 4 layout sizes: full, half vertical, half horizontal, quadrant.
 
-## How It Works
+## Architecture
+
+Two setup options — iii worker (recommended) or launchd fallback.
+
+### Option 1: iii Worker (Recommended)
+
+The iii worker registers functions and cron triggers against a running iii-engine. Real-time cost tracking via `chat::completed` events, cron-based TRMNL posting, state persistence in iii KV.
 
 ```
-Your Mac (launchd, every 5 min)
-  └─ run.sh
-       ├─ claude_usage_scraper.py  → spawns Claude CLI, types /usage, parses screen
-       ├─ rimuru_fetcher.py        → GET rimuru:3111/api/* (costs, agents, tokens)
-       └─ post_trmnl.py            → merges data, POST to TRMNL webhook
-                                         ↓
-                                   TRMNL e-ink display (refreshes on your timer)
+iii-engine (ws://localhost:49134)
+  └─ claude-dashboard-trmnl worker
+       ├─ trmnl::refresh          [cron 5min] → parse sessions + scrape /usage + POST webhook
+       ├─ trmnl::on_chat_completed [subscribe] → real-time cost tracking in iii state
+       ├─ GET  /api/trmnl/health   [http] → last update status
+       └─ POST /api/trmnl/refresh  [http] → manual trigger
+                                     ↓
+                               TRMNL webhook → e-ink display
 ```
 
-Claude Code has no usage API — the scraper opens it in a headless terminal, reads the output, and closes it. Rimuru provides all the cost/agent data via REST.
+### Option 2: launchd (macOS fallback)
+
+Python scripts scheduled via macOS launchd. No iii-engine required.
+
+```
+launchd (every 5 min) → run.sh → Python scripts → POST webhook
+```
 
 ## Prerequisites
 
-- **macOS** with Python 3
-- **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)** in your PATH
-- **[TRMNL](https://usetrmnl.com)** device with a Private Plugin
-- **[Rimuru](https://github.com/rohitg00/rimuru)** (optional) — without it, cost fields show "—"
+### For iii Worker
+- [iii CLI](https://iii.dev/docs) installed (`npm i -g iii-sdk` or `curl -fsSL https://iii.dev/install | sh`)
+- iii-engine running (`iii` or `iii --config iii-config.yaml`)
+- Node.js 20+
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) in your PATH
+- [TRMNL](https://usetrmnl.com) device with a Private Plugin
+
+### For launchd
+- macOS with Python 3
+- Claude Code in your PATH
+- TRMNL device with a Private Plugin
 
 ## Setup
 
+### iii Worker Setup
+
 ```bash
 git clone https://github.com/rohitg00/claude-dashboard-trmnl.git
-cd claude-dashboard-trmnl
+cd claude-dashboard-trmnl/worker
 
-cp .env.example .env
+npm install
+npm run build
+
+# Set your webhook URL
+export TRMNL_WEBHOOK_URL=https://trmnl.com/api/custom_plugins/YOUR-UUID
+
+# Start (connects to running iii-engine on localhost:49134)
+npm start
+
+# Or run with iii CLI
+iii --config iii-config.yaml
+```
+
+### launchd Setup (macOS fallback)
+
+```bash
+cd claude-dashboard-trmnl/launchd-setup
+
+cp ../env.example .env
 # Edit .env — add your TRMNL_WEBHOOK_URL
 
-./setup.sh          # create venv, install deps
-claude               # trust the folder, then /exit
-
-./run.sh             # test the pipeline
-./install.sh         # schedule every 5 min via launchd
+./setup.sh           # create venv, install deps
+claude                # trust the folder, then /exit
+./run.sh              # test
+./install.sh          # schedule every 5 min
 ```
 
 ### TRMNL Private Plugin
 
 1. TRMNL dashboard → **Plugins → Private Plugin** → create new
-2. Paste markup from `trmnl_plugin/`:
+2. Paste markup from `trmnl_plugin/` into each tab:
    - `markup_full.html` → **Full**
    - `markup_half_vertical.html` → **Half Vertical**
    - `markup_half_horizontal.html` → **Half Horizontal**
    - `markup_quadrant.html` → **Quadrant**
-3. Copy the webhook URL into `.env`
+3. Copy the webhook URL and set as `TRMNL_WEBHOOK_URL`
 4. Set refresh interval to **15 minutes**
+5. Add Form Fields YAML from `trmnl_plugin/plugin.yml`
 
-## Environment Variables
+## Data Flow
 
-```bash
-# Required
-TRMNL_WEBHOOK_URL=https://usetrmnl.com/api/custom_plugins/YOUR-UUID
+```
+Claude Code session files (~/.claude/projects/**/*.jsonl)
+  ├─ Each assistant message has: model, input_tokens, output_tokens, cache tokens
+  ├─ Parsed to calculate: costs (using Anthropic pricing), sessions, streaks
+  └─ 78+ sessions, $12k+ all-time tracked
 
-# Optional — Rimuru cost monitor
-RIMURU_URL=http://localhost:3111
-RIMURU_TOKEN=
+Claude Code /usage (scraped via pexpect + pyte)
+  ├─ Session %, Week All %, Sonnet %
+  └─ Extra Usage: $spent / $limit, % used, reset date
+
+~/.claude/plugins/installed_plugins.json → plugin count
+~/.claude/settings.json + Claude Desktop config → MCP count
+
+All merged → POST to TRMNL webhook → rendered on e-ink
 ```
 
 ## Template Variables
 
 | Variable | Example | Source |
 |---|---|---|
-| `session_pct` | `42` | Claude /usage |
-| `week_all_pct` | `31` | Claude /usage |
-| `week_sonnet_pct` | `22` | Claude /usage |
-| `session_reset_short` | `5pm` | Claude /usage |
-| `today_cost` | `12.50` | Rimuru |
-| `week_cost` | `87.20` | Rimuru |
-| `month_cost` | `340.00` | Rimuru |
-| `today_tokens` | `847K` | Rimuru |
-| `agents_count` | `5` | Rimuru |
-| `active_sessions` | `3` | Rimuru |
-| `top_model` | `opus` | Rimuru |
-| `top_model_pct` | `62` | Rimuru |
-| `budget_remaining` | `$160` | Rimuru |
-| `budget_pct` | `68` | Rimuru |
-| `updated_at` | `Apr 4 at 2:30PM` | local |
+| `extra_spent` | `42.30` | Claude /usage |
+| `extra_limit` | `50.00` | Claude /usage |
+| `extra_pct` | `84` | Claude /usage |
+| `session_pct` | `3` | Claude /usage |
+| `week_all_pct` | `18` | Claude /usage |
+| `today_cost` | `27.06` | Session files |
+| `week_cost` | `5.0k` | Session files |
+| `month_cost` | `5.5k` | Session files |
+| `all_time_cost` | `12k` | Session files |
+| `projected_cost` | `28k` | Session files |
+| `today_tokens` | `7.3M` | Session files |
+| `today_requests` | `24` | Session files |
+| `cache_pct` | `88` | Session files |
+| `cache_savings` | `82.92` | Session files |
+| `cost_per_req` | `1.13` | Session files |
+| `active_now` | `1` | Session files |
+| `sessions_today` | `1` | Session files |
+| `month_sessions` | `22` | Session files |
+| `all_sessions` | `78` | Session files |
+| `streak` | `11` | Session files |
+| `hours_today` | `12m` | Session files |
+| `primary_model` | `opus` | Session files |
+| `model_line` | `opus:10375` | Session files |
+| `plugin_count` | `15` | Plugins file |
+| `mcp_count` | `2` | Settings files |
 
-## Files
+## Project Structure
 
-| File | Purpose |
-|---|---|
-| `claude_usage_scraper.py` | Spawns Claude CLI, sends `/usage`, parses via pyte |
-| `rimuru_fetcher.py` | Fetches costs/agents/tokens from Rimuru REST API |
-| `post_trmnl.py` | Merges sources, POSTs to TRMNL webhook |
-| `run.sh` | Wrapper: loads .env, activates venv, runs pipeline |
-| `setup.sh` / `install.sh` / `uninstall.sh` | Setup, schedule, remove |
-| `trmnl_plugin/` | Markup templates + plugin.yml + icon |
-
-## Troubleshooting
-
-| Problem | Fix |
-|---|---|
-| `claude not found` | Install Claude Code, verify `which claude` |
-| Scraper times out | Run `claude` in project dir to trust it first |
-| Rimuru fields show "—" | Check `curl localhost:3111/api/health` |
-| Stale display | `launchctl list \| grep claude-dashboard` + check `/tmp/*.err` |
+```
+claude-dashboard-trmnl/
+  worker/                  # iii worker (recommended)
+    src/index.ts           # Functions, cron triggers, state, TRMNL POST
+    iii-config.yaml        # iii-engine config
+    package.json
+  launchd-setup/           # macOS fallback
+    claude_usage_scraper.py
+    session_stats.py
+    post_trmnl.py
+    run.sh / setup.sh / install.sh / uninstall.sh
+  trmnl_plugin/            # Shared TRMNL templates
+    markup_full.html
+    markup_half_horizontal.html
+    markup_half_vertical.html
+    markup_quadrant.html
+    plugin.yml
+    icon.svg
+```
 
 ## Credits
 
-Inspired by [claude-usage-trmnl](https://github.com/carledwards/claude-usage-trmnl) by Carl Edwards. Extended with [Rimuru](https://github.com/rohitg00/rimuru) cost monitoring integration.
+Inspired by [claude-usage-trmnl](https://github.com/carledwards/claude-usage-trmnl) by Carl Edwards.
 
 ## License
 

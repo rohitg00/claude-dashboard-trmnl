@@ -2,6 +2,11 @@
 __pycache__/
 *.py[codz]
 *$py.class
+codedb.snapshot
+node_modules/
+dist/
+worker/node_modules/
+worker/dist/
 
 # C extensions
 *.so

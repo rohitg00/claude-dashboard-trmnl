@@ -1,0 +1,11 @@
+engine:
+  port: 49134
+  host: 127.0.0.1
+
+workers:
+  - name: claude-dashboard-trmnl
+    command: node
+    args: ["dist/index.mjs"]
+    cwd: .
+    env:
+      TRMNL_WEBHOOK_URL: "${TRMNL_WEBHOOK_URL}"
