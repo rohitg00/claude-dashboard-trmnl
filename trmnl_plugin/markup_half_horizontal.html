@@ -1,42 +1,39 @@
-<!-- Claude Code Dashboard — Half Horizontal -->
+<!-- Claude Code Dashboard — Half Horizontal (800x240) -->
 
 <div class="view">
-  <div class="layout layout--col gap--medium">
+  <div class="layout layout--col">
 
     <div class="columns">
       <div class="column">
-        <span class="label label--small label--inverted">EXTRA</span>
-        <span class="value value--small lg:value--large">${{ extra_spent }}</span>
-        <span class="description">{{ extra_pct }}%</span>
+        <span class="label label--filled">EXTRA</span>
+        <span class="value value--small">${{ extra_spent }}</span>
       </div>
       <div class="column">
         <span class="label label--small">Month</span>
-        <span class="value value--small lg:value--large">${{ month_cost }}</span>
+        <span class="value value--small">${{ month_cost }}</span>
       </div>
       <div class="column">
         <span class="label label--small">Session</span>
-        <span class="value value--small lg:value--large">{{ session_pct }}%</span>
+        <span class="value value--small">{{ session_pct }}%</span>
       </div>
       <div class="column">
         <span class="label label--small">Week</span>
-        <span class="value value--small lg:value--large">{{ week_all_pct }}%</span>
+        <span class="value value--small">{{ week_all_pct }}%</span>
       </div>
-    </div>
-
-    <div class="layout layout--row gap--large">
-      <span class="label label--small">{{ active_now }} running</span>
-      <span class="label label--small">&middot;</span>
-      <span class="label label--small">{{ today_requests }} reqs</span>
-      <span class="label label--small">&middot;</span>
-      <span class="label label--small">{{ cache_pct }}% cache</span>
-      <span class="label label--small">&middot;</span>
-      <span class="label label--small label--inverted">{{ primary_model }}</span>
+      <div class="column">
+        <span class="value value--small">{{ active_now }}</span>
+        <span class="label label--small">Running</span>
+      </div>
+      <div class="column">
+        <span class="value value--small">{{ cache_pct }}%</span>
+        <span class="label label--small">Cache</span>
+      </div>
     </div>
 
   </div>
 </div>
 
 <div class="title_bar">
-  <span class="title">Claude &middot; {{ streak }}d streak &middot; {{ plugin_count }} plugins</span>
+  <span class="title">Claude &middot; {{ streak }}d streak &middot; {{ today_requests }} reqs &middot; {{ today_tokens }} tok</span>
   <span class="instance">{{ updated_at }}</span>
 </div>

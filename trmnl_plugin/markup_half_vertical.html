@@ -1,55 +1,52 @@
-<!-- Claude Code Dashboard — Half Vertical -->
+<!-- Claude Code Dashboard — Half Vertical (400x480) -->
 
 <div class="view">
-  <div class="layout layout--col gap--large">
+  <div class="layout layout--col">
+
+    <div class="layout layout--col">
+      <span class="label label--filled">EXTRA</span>
+      <span class="value value--small">${{ extra_spent }}</span>
+      <span class="description">{{ extra_pct }}% of ${{ extra_limit }}</span>
+    </div>
 
     <div class="columns">
       <div class="column">
-        <span class="label label--small label--inverted">EXTRA</span>
-        <span class="value value--small lg:value--large">${{ extra_spent }}</span>
-        <span class="description">{{ extra_pct }}% of ${{ extra_limit }}</span>
-      </div>
-      <div class="column">
         <span class="label label--small">Month</span>
-        <span class="value value--small lg:value--large">${{ month_cost }}</span>
+        <span class="value value--xxsmall">${{ month_cost }}</span>
       </div>
       <div class="column">
         <span class="label label--small">All Time</span>
-        <span class="value value--small lg:value--large">${{ all_time_cost }}</span>
+        <span class="value value--xxsmall">${{ all_time_cost }}</span>
       </div>
     </div>
 
-    <div class="progress-bar lg:progress-bar--large stretch-x">
+    <div class="progress-bar stretch-x">
       <div class="content">
-        <span class="label lg:label--large">Session</span>
-        <span class="value value--xxsmall lg:value--xsmall">{{ session_pct }}%</span>
+        <span class="label label--small">Session</span>
+        <span class="label label--small">{{ session_pct }}%</span>
       </div>
       <div class="track"><div class="fill" style="width:{{ session_pct }}%"></div></div>
     </div>
 
-    <div class="progress-bar lg:progress-bar--large stretch-x">
+    <div class="progress-bar stretch-x">
       <div class="content">
-        <span class="label lg:label--large">Week &middot; All</span>
-        <span class="value value--xxsmall lg:value--xsmall">{{ week_all_pct }}%</span>
+        <span class="label label--small">Week</span>
+        <span class="label label--small">{{ week_all_pct }}%</span>
       </div>
       <div class="track"><div class="fill" style="width:{{ week_all_pct }}%"></div></div>
     </div>
 
     <div class="columns">
       <div class="column">
-        <span class="value value--xsmall lg:value--small">{{ active_now }}</span>
-        <span class="label label--small">Running</span>
+        <span class="value value--xxsmall">{{ active_now }}</span>
+        <span class="label label--small">Run</span>
       </div>
       <div class="column">
-        <span class="value value--xsmall lg:value--small">{{ sessions_today }}</span>
-        <span class="label label--small">Today</span>
-      </div>
-      <div class="column">
-        <span class="value value--xsmall lg:value--small">{{ all_sessions }}</span>
+        <span class="value value--xxsmall">{{ all_sessions }}</span>
         <span class="label label--small">Total</span>
       </div>
       <div class="column">
-        <span class="value value--xsmall lg:value--small">{{ cache_pct }}%</span>
+        <span class="value value--xxsmall">{{ cache_pct }}%</span>
         <span class="label label--small">Cache</span>
       </div>
     </div>
@@ -58,6 +55,6 @@
 </div>
 
 <div class="title_bar">
-  <span class="title">Claude &middot; {{ streak }}d streak &middot; {{ hours_today }} coded</span>
+  <span class="title">Claude &middot; {{ streak }}d streak</span>
   <span class="instance">{{ updated_at }}</span>
 </div>

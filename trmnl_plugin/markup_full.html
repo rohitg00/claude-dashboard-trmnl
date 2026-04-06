@@ -1,113 +1,98 @@
 <!-- Claude Code Dashboard — Full -->
 
 <div class="view">
-  <div class="layout layout--col gap--medium">
+  <div class="layout layout--col">
 
-    <!-- Billing + Costs -->
+    <!-- Costs — single compact row -->
     <div class="columns">
       <div class="column">
-        <div class="layout layout--col">
-          <span class="label label--filled">EXTRA USAGE</span>
-          <span class="value value--large lg:value--xlarge">${{ extra_spent }}</span>
-          <span class="description lg:description--large">${{ extra_limit }} limit &middot; {{ extra_pct }}% &middot; {{ extra_reset }}</span>
-        </div>
+        <span class="label label--filled">EXTRA</span>
+        <span class="value value--small lg:value--large">${{ extra_spent }}</span>
+        <span class="description">{{ extra_pct }}% of ${{ extra_limit }}</span>
       </div>
       <div class="column">
-        <div class="layout layout--col">
-          <span class="label label--small">Week (est)</span>
-          <span class="value value--small lg:value--large">${{ week_cost }}</span>
-        </div>
+        <span class="label label--small">Week</span>
+        <span class="value value--small lg:value--large">${{ week_cost }}</span>
       </div>
       <div class="column">
-        <div class="layout layout--col">
-          <span class="label label--small">Month (est)</span>
-          <span class="value value--small lg:value--large">${{ month_cost }}</span>
-        </div>
+        <span class="label label--small">Month</span>
+        <span class="value value--small lg:value--large">${{ month_cost }}</span>
       </div>
       <div class="column">
-        <div class="layout layout--col">
-          <span class="label label--small">All Time</span>
-          <span class="value value--small lg:value--large">${{ all_time_cost }}</span>
-        </div>
+        <span class="label label--small">All Time</span>
+        <span class="value value--small lg:value--large">${{ all_time_cost }}</span>
       </div>
     </div>
 
-    <div class="divider"></div>
-
-    <!-- Rate limit bars -->
-    <div class="progress-bar lg:progress-bar--large stretch-x">
+    <!-- Bars -->
+    <div class="progress-bar stretch-x">
       <div class="content">
-        <span class="label lg:label--xlarge">Session</span>
-        <span class="value value--xxsmall lg:value--small">{{ session_pct }}%</span>
+        <span class="label">Session &middot; {{ session_reset_short }}</span>
+        <span class="value value--xxsmall">{{ session_pct }}%</span>
       </div>
       <div class="track"><div class="fill" style="width:{{ session_pct }}%"></div></div>
-      <span class="description lg:description--large">Resets {{ session_reset_short }}</span>
     </div>
 
-    <div class="progress-bar lg:progress-bar--large stretch-x">
+    <div class="progress-bar stretch-x">
       <div class="content">
-        <span class="label lg:label--xlarge">Week &middot; All Models</span>
-        <span class="value value--xxsmall lg:value--small">{{ week_all_pct }}%</span>
+        <span class="label">Week All &middot; {{ week_all_reset_short }}</span>
+        <span class="value value--xxsmall">{{ week_all_pct }}%</span>
       </div>
       <div class="track"><div class="fill" style="width:{{ week_all_pct }}%"></div></div>
-      <span class="description lg:description--large">Resets {{ week_all_reset_short }}</span>
     </div>
 
-    <div class="divider"></div>
-
-    <!-- Token economy -->
+    <!-- Stats -->
     <div class="columns">
       <div class="column">
-        <span class="value value--xsmall lg:value--small">{{ today_tokens }}</span>
+        <span class="value value--xxsmall lg:value--xsmall">{{ today_tokens }}</span>
         <span class="label label--small">Tokens</span>
       </div>
       <div class="column">
-        <span class="value value--xsmall lg:value--small">{{ today_requests }}</span>
+        <span class="value value--xxsmall lg:value--xsmall">{{ today_requests }}</span>
         <span class="label label--small">Requests</span>
       </div>
       <div class="column">
-        <span class="value value--xsmall lg:value--small">{{ cache_pct }}%</span>
-        <span class="label label--small">Cache Hit</span>
+        <span class="value value--xxsmall lg:value--xsmall">{{ cache_pct }}%</span>
+        <span class="label label--small">Cache</span>
       </div>
       <div class="column">
-        <span class="value value--xsmall lg:value--small">${{ cost_per_req }}</span>
+        <span class="value value--xxsmall lg:value--xsmall">${{ cost_per_req }}</span>
         <span class="label label--small">Per Req</span>
       </div>
       <div class="column">
-        <span class="value value--xsmall lg:value--small">${{ cache_savings }}</span>
+        <span class="value value--xxsmall lg:value--xsmall">${{ cache_savings }}</span>
         <span class="label label--small">Saved</span>
+      </div>
+      <div class="column">
+        <span class="label label--filled">{{ primary_model }}</span>
       </div>
     </div>
 
     <!-- Sessions -->
     <div class="columns">
       <div class="column">
-        <span class="value value--xsmall lg:value--small">{{ active_now }}</span>
+        <span class="value value--xxsmall lg:value--xsmall">{{ active_now }}</span>
         <span class="label label--small">Running</span>
       </div>
       <div class="column">
-        <span class="value value--xsmall lg:value--small">{{ sessions_today }}</span>
+        <span class="value value--xxsmall lg:value--xsmall">{{ sessions_today }}</span>
         <span class="label label--small">Today</span>
       </div>
       <div class="column">
-        <span class="value value--xsmall lg:value--small">{{ month_sessions }}</span>
+        <span class="value value--xxsmall lg:value--xsmall">{{ month_sessions }}</span>
         <span class="label label--small">Month</span>
       </div>
       <div class="column">
-        <span class="value value--xsmall lg:value--small">{{ all_sessions }}</span>
+        <span class="value value--xxsmall lg:value--xsmall">{{ all_sessions }}</span>
         <span class="label label--small">Total</span>
       </div>
       <div class="column">
-        <span class="value value--xsmall lg:value--small">{{ streak }}d</span>
+        <span class="value value--xxsmall lg:value--xsmall">{{ streak }}d</span>
         <span class="label label--small">Streak</span>
       </div>
       <div class="column">
-        <span class="value value--xsmall lg:value--small">{{ hours_today }}</span>
+        <span class="value value--xxsmall lg:value--xsmall">{{ hours_today }}</span>
         <span class="label label--small">Coded</span>
-      </div>
-      <div class="column">
-        <span class="label label--filled">{{ primary_model }}</span>
-        <span class="description">{{ model_line }}</span>
       </div>
     </div>
 
