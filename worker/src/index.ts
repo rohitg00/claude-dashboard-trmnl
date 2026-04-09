@@ -12,10 +12,14 @@ const SETTINGS_FILE = join(homedir(), ".claude", "settings.json");
 const DESKTOP_CONFIG = join(homedir(), "Library", "Application Support", "Claude", "claude_desktop_config.json");
 
 const PRICING: Record<string, { input: number; output: number; cacheRead: number; cacheWrite: number }> = {
-  opus:   { input: 15,  output: 75, cacheRead: 1.5,  cacheWrite: 18.75 },
-  sonnet: { input: 3,   output: 15, cacheRead: 0.3,  cacheWrite: 3.75  },
-  haiku:  { input: 0.8, output: 4,  cacheRead: 0.08, cacheWrite: 1.0   },
+  opus_new:  { input: 5,   output: 25,  cacheRead: 0.50, cacheWrite: 6.25  },
+  opus_fast: { input: 30,  output: 150, cacheRead: 3.00, cacheWrite: 37.50 },
+  opus_old:  { input: 15,  output: 75,  cacheRead: 1.50, cacheWrite: 18.75 },
+  sonnet:    { input: 3,   output: 15,  cacheRead: 0.30, cacheWrite: 3.75  },
+  haiku_45:  { input: 1,   output: 5,   cacheRead: 0.10, cacheWrite: 1.25  },
+  haiku_35:  { input: 0.8, output: 4,   cacheRead: 0.08, cacheWrite: 1.0   },
 };
+const WEB_SEARCH_COST = 0.01;
 
 const iii = init(process.env.III_BRIDGE_URL ?? "ws://localhost:49134");
 
@@ -29,15 +33,20 @@ const state: IState = {
 
 // --- Helpers ---
 
-function tier(model: string): string {
-  if (model.includes("opus")) return "opus";
-  if (model.includes("haiku")) return "haiku";
+function tier(model: string, speed = ""): string {
+  if (model.includes("opus")) {
+    if (model.includes("opus-4-6") || model.includes("opus-4-5")) {
+      return speed === "fast" && model.includes("opus-4-6") ? "opus_fast" : "opus_new";
+    }
+    return "opus_old";
+  }
+  if (model.includes("haiku")) return model.includes("haiku-4-5") ? "haiku_45" : "haiku_35";
   return "sonnet";
 }
 
-function cost(model: string, inp: number, out: number, cr: number, cw: number): number {
-  const p = PRICING[tier(model)] ?? PRICING.sonnet;
-  return (inp / 1e6) * p.input + (out / 1e6) * p.output + (cr / 1e6) * p.cacheRead + (cw / 1e6) * p.cacheWrite;
+function cost(model: string, inp: number, out: number, cr: number, cw: number, speed = "", webSearch = 0): number {
+  const p = PRICING[tier(model, speed)] ?? PRICING.sonnet;
+  return (inp / 1e6) * p.input + (out / 1e6) * p.output + (cr / 1e6) * p.cacheRead + (cw / 1e6) * p.cacheWrite + webSearch * WEB_SEARCH_COST;
 }
 
 function fc(v: number): string {
@@ -136,9 +145,11 @@ function gatherStats(): Record<string, string> {
         const out = u.output_tokens ?? 0;
         const cr = u.cache_read_input_tokens ?? 0;
         const cw = u.cache_creation_input_tokens ?? 0;
+        const speed = u.speed ?? "";
+        const ws = u.server_tool_use?.web_search_requests ?? 0;
         const model = msg.model ?? "claude-sonnet-4-6";
-        const t = tier(model);
-        const c = cost(model, inp, out, cr, cw);
+        const t = tier(model, speed);
+        const c = cost(model, inp, out, cr, cw, speed, ws);
         const ts = e.timestamp ?? "";
         const day = ts.slice(0, 10);
 
@@ -169,14 +180,19 @@ function gatherStats(): Record<string, string> {
   // Model
   const totalMReqs = Object.values(modelReqs).reduce((a, b) => a + b, 0) || 1;
   const primary = Object.entries(modelReqs).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "—";
-  const modelLine = Object.entries(modelReqs)
-    .filter(([, r]) => r / totalMReqs >= 0.01)
-    .map(([t, r]) => `${t}:${r}`).join(" / ") || `${primary}:${modelReqs[primary] ?? 0}`;
+  const displayReqs: Record<string, number> = {};
+  for (const [t, r] of Object.entries(modelReqs)) {
+    const base = t.split("_")[0];
+    displayReqs[base] = (displayReqs[base] ?? 0) + r;
+  }
+  const modelLine = ["opus", "sonnet", "haiku"]
+    .filter(t => displayReqs[t] && displayReqs[t] / totalMReqs >= 0.01)
+    .map(t => `${t}:${displayReqs[t]}`).join(" / ") || `${primary.split("_")[0]}:${modelReqs[primary] ?? 0}`;
 
   // Efficiency
   const totalInput = todayIn + todayCr + todayCw;
   const cachePct = totalInput > 0 ? Math.round((todayCr / totalInput) * 100) : 0;
-  const noCacheCost = totalInput > 0 ? cost("opus", totalInput, todayOut, 0, 0) : 0;
+  const noCacheCost = totalInput > 0 ? cost("claude-opus-4-6", totalInput, todayOut, 0, 0) : 0;
   const cacheSavings = Math.max(0, noCacheCost - todayCost);
   const costPerReq = todayReqs > 0 ? todayCost / todayReqs : 0;
   const costTrend = yesterdayCost > 0 ? `${((todayCost - yesterdayCost) / yesterdayCost * 100).toFixed(0)}%` : "—";
@@ -218,7 +234,7 @@ function gatherStats(): Record<string, string> {
     active_days: String([...daysActive].filter(d => d >= monthStart.toISOString().slice(0, 10)).length),
     streak: String(streak), hours_today: hoursToday,
     longest_session: String(longestMsgs),
-    primary_model: primary, primary_pct: String(Math.round((modelReqs[primary] ?? 0) / totalMReqs * 100)),
+    primary_model: primary.split("_")[0], primary_pct: String(Math.round((modelReqs[primary] ?? 0) / totalMReqs * 100)),
     model_line: modelLine,
     plugin_count: String(countPlugins()), mcp_count: String(mcpCount), mcp_names: mcpNames,
   };

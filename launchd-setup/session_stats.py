@@ -18,21 +18,29 @@ DESKTOP_CONFIG = (
 )
 
 PRICING = {
-    "opus": {"input": 15, "output": 75, "cache_read": 1.5, "cache_write": 18.75},
-    "sonnet": {"input": 3, "output": 15, "cache_read": 0.3, "cache_write": 3.75},
-    "haiku": {"input": 0.8, "output": 4, "cache_read": 0.08, "cache_write": 1.0},
+    "opus_new":   {"input": 5,    "output": 25,  "cache_read": 0.50, "cache_write": 6.25},
+    "opus_fast":  {"input": 30,   "output": 150, "cache_read": 3.00, "cache_write": 37.50},
+    "opus_old":   {"input": 15,   "output": 75,  "cache_read": 1.50, "cache_write": 18.75},
+    "sonnet":     {"input": 3,    "output": 15,  "cache_read": 0.30, "cache_write": 3.75},
+    "haiku_45":   {"input": 1,    "output": 5,   "cache_read": 0.10, "cache_write": 1.25},
+    "haiku_35":   {"input": 0.8,  "output": 4,   "cache_read": 0.08, "cache_write": 1.0},
 }
+WEB_SEARCH_COST = 0.01
 
 
-def _tier(model: str) -> str:
-    if "opus" in model: return "opus"
-    if "haiku" in model: return "haiku"
+def _tier(model: str, speed: str = "") -> str:
+    if "opus" in model:
+        if "opus-4-6" in model or "opus-4-5" in model:
+            return "opus_fast" if speed == "fast" and "opus-4-6" in model else "opus_new"
+        return "opus_old"
+    if "haiku" in model:
+        return "haiku_45" if "haiku-4-5" in model else "haiku_35"
     return "sonnet"
 
 
-def _cost(model, inp, out, cr, cw):
-    p = PRICING.get(_tier(model), PRICING["sonnet"])
-    return (inp/1e6)*p["input"] + (out/1e6)*p["output"] + (cr/1e6)*p["cache_read"] + (cw/1e6)*p["cache_write"]
+def _cost(model, inp, out, cr, cw, speed="", web_search=0):
+    p = PRICING.get(_tier(model, speed), PRICING["sonnet"])
+    return (inp/1e6)*p["input"] + (out/1e6)*p["output"] + (cr/1e6)*p["cache_read"] + (cw/1e6)*p["cache_write"] + web_search * WEB_SEARCH_COST
 
 
 def _fc(v):
@@ -144,16 +152,20 @@ def gather_stats() -> dict:
     total_m_reqs = sum(model_reqs.values()) or 1
     primary = max(model_reqs, key=model_reqs.get) if model_reqs else "—"
     primary_pct = round(model_reqs.get(primary, 0) / total_m_reqs * 100) if model_reqs else 0
+    display_reqs = {}
+    for t, r in model_reqs.items():
+        base = t.split("_")[0]
+        display_reqs[base] = display_reqs.get(base, 0) + r
     model_line = " / ".join(
-        f"{t}:{model_reqs[t]}" for t in ["opus","sonnet","haiku"]
-        if t in model_reqs and model_reqs[t]/total_m_reqs >= 0.01
-    ) or (f"{primary}:{model_reqs.get(primary,0)}" if primary != "—" else "—")
+        f"{t}:{display_reqs[t]}" for t in ["opus","sonnet","haiku"]
+        if t in display_reqs and display_reqs[t]/total_m_reqs >= 0.01
+    ) or (f"{primary.split('_')[0]}:{model_reqs.get(primary,0)}" if primary != "—" else "—")
 
     # Tokens
     today_tokens = today_in + today_out + today_cr + today_cw
     total_input = today_in + today_cr + today_cw
     cache_pct = round(today_cr / total_input * 100) if total_input > 0 else 0
-    no_cache_cost = _cost("opus", total_input, today_out, 0, 0) if total_input > 0 else 0
+    no_cache_cost = _cost("claude-opus-4-6", total_input, today_out, 0, 0) if total_input > 0 else 0
     cache_savings = max(0, no_cache_cost - today_cost)
 
     # Cost metrics
@@ -223,7 +235,7 @@ def gather_stats() -> dict:
         "hours_today": hours_today,
         "longest_session": str(longest_session_msgs),
         # Model
-        "primary_model": primary, "primary_pct": str(primary_pct),
+        "primary_model": primary.split("_")[0], "primary_pct": str(primary_pct),
         "model_line": model_line,
         # Projects
         "top_project": top_project, "top_proj_cost": top_proj_cost,
@@ -259,8 +271,10 @@ def _parse(path, today, yesterday, week_ago):
                 ts = e.get("timestamp",""); day = ts[:10] if ts else ""
                 inp=u.get("input_tokens",0); out=u.get("output_tokens",0)
                 cr=u.get("cache_read_input_tokens",0); cw=u.get("cache_creation_input_tokens",0)
-                model=m.get("model","claude-sonnet-4-6"); t=_tier(model)
-                c=_cost(model,inp,out,cr,cw)
+                speed=u.get("speed","")
+                ws=(u.get("server_tool_use") or {}).get("web_search_requests",0)
+                model=m.get("model","claude-sonnet-4-6"); t=_tier(model, speed)
+                c=_cost(model,inp,out,cr,cw,speed,ws)
                 r["cost"]+=c; r["msgs"]+=1
                 r["m_costs"][t]=r["m_costs"].get(t,0)+c
                 r["m_reqs"][t]=r["m_reqs"].get(t,0)+1
