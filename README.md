@@ -9,9 +9,11 @@ Full dashboard for [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
 - **Extra Usage** — real Anthropic billing ($42.30 / $50 limit, 84%)
 - **Rate Limits** — session % and week % with reset times
 - **Cost Tracking** — today, week, month, all-time (per-model pricing from Claude Code source)
-- **Sessions** — running, today, month, total, streak days, hours coded
-- **Efficiency** — tokens, requests, cache hit %, cost/req, cache savings
-- **Setup** — plugins, MCPs, model breakdown
+- **Token Breakdown** — input, output, cache read, cache write, total
+- **Sessions** — running, today, week, month, total, streak days, hours coded
+- **Efficiency** — API equiv. cost, messages, cache hit %, cost/req, cache savings
+- **Model Usage** — primary model badge, conditional sonnet/haiku when used
+- **Setup** — plugins, MCPs, projected monthly cost
 
 4 layout sizes: full, half vertical, half horizontal, quadrant.
 
@@ -156,24 +158,40 @@ All merged → POST to TRMNL webhook → rendered on e-ink
 | `daily_avg` | `180` | Session files |
 | `cost_trend` | `+46%` | Session files |
 | `avg_session_cost` | `250` | Session files |
-| `today_tokens` | `7.3M` | Session files |
-| `today_requests` | `24` | Session files |
-| `cache_pct` | `88` | Session files |
-| `cache_savings` | `82.92` | Session files |
-| `cost_per_req` | `1.13` | Session files |
-| `active_now` | `1` | Session files |
-| `sessions_today` | `1` | Session files |
-| `month_sessions` | `22` | Session files |
-| `all_sessions` | `78` | Session files |
-| `streak` | `11` | Session files |
-| `hours_today` | `12m` | Session files |
+| `today_tokens` | `327M` | Session files |
+| `today_input` | `9K` | Session files |
+| `today_output` | `338K` | Session files |
+| `today_cache_read` | `306.6M` | Session files |
+| `today_cache_write` | `20.1M` | Session files |
+| `today_requests` | `1123` | Session files |
+| `today_msgs` | `1123` | Session files |
+| `cache_pct` | `94` | Session files |
+| `cache_savings` | `1.4k` | Session files |
+| `cost_per_req` | `0.26` | Session files |
+| `week_tokens` | `1.8B` | Session files |
+| `week_cost` | `1.6k` | Session files |
+| `week_msgs` | `7201` | Session files |
+| `week_sessions` | `18` | Session files |
+| `active_now` | `3` | Session files |
+| `sessions_today` | `5` | Session files |
+| `month_sessions` | `31` | Session files |
+| `all_sessions` | `71` | Session files |
+| `streak` | `14` | Session files |
+| `hours_today` | `12.5h` | Session files |
 | `primary_model` | `opus` | Session files |
-| `model_line` | `opus:10375` | Session files |
+| `primary_pct` | `100` | Session files |
+| `model_line` | `opus:15228` | Session files |
+| `opus_tokens` | `4.1B` | Session files |
+| `opus_pct` | `100` | Session files |
+| `sonnet_tokens` | `0` | Session files |
+| `sonnet_pct` | `0` | Session files |
+| `haiku_tokens` | `0` | Session files |
+| `haiku_pct` | `0` | Session files |
 | `top_project` | `kubectl-mcp` | Session files |
 | `top_proj_cost` | `1.2k` | Session files |
 | `plugin_count` | `15` | Plugins file |
-| `mcp_count` | `2` | Settings files |
-| `updated_at` | `Apr 9 at 3:45 PM` | Generated |
+| `mcp_count` | `1` | Settings files |
+| `updated_at` | `Apr 9 at 9:45PM` | Generated |
 
 ## Project Structure
 
