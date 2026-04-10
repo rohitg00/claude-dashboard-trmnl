@@ -2,30 +2,30 @@
 
 <div class="layout layout--col">
 
-  <div class="grid grid--cols-6 lg:grid--cols-3">
+  <div class="grid grid--cols-6 lg:grid--cols-3 lg:portrait:grid--cols-6">
     <div class="flex flex--col flex--stretch-x">
-      <span class="label label--filled lg:label--large">EXTRA</span>
-      <span class="value value--small lg:value--xxlarge">${{ extra_spent }}</span>
+      <span class="label label--filled">EXTRA</span>
+      <span class="value value--small lg:value--large lg:portrait:value--small">${{ extra_spent }}</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="label label--small lg:label--large">Month</span>
-      <span class="value value--small lg:value--xxlarge">${{ month_cost }}</span>
+      <span class="label label--small">Month</span>
+      <span class="value value--small lg:value--large lg:portrait:value--small">${{ month_cost }}</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="label label--small lg:label--large">Session</span>
-      <span class="value value--small lg:value--xxlarge">{{ session_pct }}%</span>
+      <span class="label label--small">Session</span>
+      <span class="value value--small lg:value--large lg:portrait:value--small">{{ session_pct }}%</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="label label--small lg:label--large">Week</span>
-      <span class="value value--small lg:value--xxlarge">{{ week_all_pct }}%</span>
+      <span class="label label--small">Week</span>
+      <span class="value value--small lg:value--large lg:portrait:value--small">{{ week_all_pct }}%</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="label label--small lg:label--large">Tokens</span>
-      <span class="value value--small lg:value--xxlarge">{{ today_tokens }}</span>
+      <span class="label label--small">Tokens</span>
+      <span class="value value--small lg:value--large lg:portrait:value--small">{{ today_tokens }}</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="label label--small lg:label--large">API eq.</span>
-      <span class="value value--small lg:value--xxlarge">~${{ today_cost }}</span>
+      <span class="label label--small">API eq.</span>
+      <span class="value value--small lg:value--large lg:portrait:value--small">~${{ today_cost }}</span>
     </div>
   </div>
 

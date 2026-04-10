@@ -3,23 +3,23 @@
 <div class="layout layout--col">
 
   <!-- Costs -->
-  <div class="grid grid--cols-4 lg:grid--cols-2">
+  <div class="grid grid--cols-4 lg:grid--cols-2 lg:portrait:grid--cols-4">
     <div class="flex flex--col flex--stretch-x">
-      <span class="label label--filled lg:label--large">EXTRA</span>
-      <span class="value value--small lg:value--xxlarge">${{ extra_spent }}</span>
-      <span class="description lg:description--xlarge">{{ extra_pct }}% of ${{ extra_limit }}</span>
+      <span class="label label--filled">EXTRA</span>
+      <span class="value value--small lg:value--large lg:portrait:value--small">${{ extra_spent }}</span>
+      <span class="description lg:portrait:description">{{ extra_pct }}% of ${{ extra_limit }}</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="label label--small lg:label--large">Week</span>
-      <span class="value value--small lg:value--xxlarge">${{ week_cost }}</span>
+      <span class="label label--small">Week</span>
+      <span class="value value--small lg:value--large lg:portrait:value--small">${{ week_cost }}</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="label label--small lg:label--large">Month</span>
-      <span class="value value--small lg:value--xxlarge">${{ month_cost }}</span>
+      <span class="label label--small">Month</span>
+      <span class="value value--small lg:value--large lg:portrait:value--small">${{ month_cost }}</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="label label--small lg:label--large">All Time</span>
-      <span class="value value--small lg:value--xxlarge">${{ all_time_cost }}</span>
+      <span class="label label--small">All Time</span>
+      <span class="value value--small lg:value--large lg:portrait:value--small">${{ all_time_cost }}</span>
     </div>
   </div>
 
@@ -41,78 +41,78 @@
   </div>
 
   <!-- Token breakdown -->
-  <div class="grid grid--cols-5 lg:grid--cols-5">
+  <div class="grid grid--cols-5">
     <div class="flex flex--col flex--stretch-x">
-      <span class="label label--small lg:label--large">Input</span>
-      <span class="value value--xxsmall lg:value--large">{{ today_input }}</span>
+      <span class="label label--small">Input</span>
+      <span class="value value--xxsmall">{{ today_input }}</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="label label--small lg:label--large">Output</span>
-      <span class="value value--xxsmall lg:value--large">{{ today_output }}</span>
+      <span class="label label--small">Output</span>
+      <span class="value value--xxsmall">{{ today_output }}</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="label label--small lg:label--large">Cache Read</span>
-      <span class="value value--xxsmall lg:value--large">{{ today_cache_read }}</span>
+      <span class="label label--small">Cache Read</span>
+      <span class="value value--xxsmall">{{ today_cache_read }}</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="label label--small lg:label--large">Cache Write</span>
-      <span class="value value--xxsmall lg:value--large">{{ today_cache_write }}</span>
+      <span class="label label--small">Cache Write</span>
+      <span class="value value--xxsmall">{{ today_cache_write }}</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="label label--small lg:label--large">Total</span>
-      <span class="value value--small lg:value--xlarge">{{ today_tokens }}</span>
+      <span class="label label--small">Total</span>
+      <span class="value value--small">{{ today_tokens }}</span>
     </div>
   </div>
 
   <!-- Cost stats -->
-  <div class="grid grid--cols-5 lg:grid--cols-5">
+  <div class="grid grid--cols-5">
     <div class="flex flex--col flex--stretch-x">
-      <span class="value value--xxsmall lg:value--large">~${{ today_cost }}</span>
-      <span class="label label--small lg:label--large">API equiv.</span>
+      <span class="value value--xxsmall">~${{ today_cost }}</span>
+      <span class="label label--small">API equiv.</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="value value--xxsmall lg:value--large">{{ today_msgs }}</span>
-      <span class="label label--small lg:label--large">Messages</span>
+      <span class="value value--xxsmall">{{ today_msgs }}</span>
+      <span class="label label--small">Messages</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="value value--xxsmall lg:value--large">{{ cache_pct }}%</span>
-      <span class="label label--small lg:label--large">Cache</span>
+      <span class="value value--xxsmall">{{ cache_pct }}%</span>
+      <span class="label label--small">Cache</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="value value--xxsmall lg:value--large">${{ cache_savings }}</span>
-      <span class="label label--small lg:label--large">Saved</span>
+      <span class="value value--xxsmall">${{ cache_savings }}</span>
+      <span class="label label--small">Saved</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="value value--xxsmall lg:value--large">${{ cost_per_req }}</span>
-      <span class="label label--small lg:label--large">Per Req</span>
+      <span class="value value--xxsmall">${{ cost_per_req }}</span>
+      <span class="label label--small">Per Req</span>
     </div>
   </div>
 
   <!-- Sessions + model -->
-  <div class="grid grid--cols-6 lg:grid--cols-3">
+  <div class="grid grid--cols-6 lg:grid--cols-3 lg:portrait:grid--cols-6">
     <div class="flex flex--col flex--stretch-x">
-      <span class="value value--xxsmall lg:value--large">{{ active_now }}</span>
-      <span class="label label--small lg:label--large">Running</span>
+      <span class="value value--xxsmall">{{ active_now }}</span>
+      <span class="label label--small">Running</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="value value--xxsmall lg:value--large">{{ sessions_today }}</span>
-      <span class="label label--small lg:label--large">Today</span>
+      <span class="value value--xxsmall">{{ sessions_today }}</span>
+      <span class="label label--small">Today</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="value value--xxsmall lg:value--large">{{ week_sessions }}</span>
-      <span class="label label--small lg:label--large">Week</span>
+      <span class="value value--xxsmall">{{ week_sessions }}</span>
+      <span class="label label--small">Week</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="value value--xxsmall lg:value--large">{{ month_sessions }}</span>
-      <span class="label label--small lg:label--large">Month</span>
+      <span class="value value--xxsmall">{{ month_sessions }}</span>
+      <span class="label label--small">Month</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="value value--xxsmall lg:value--large">{{ all_sessions }}</span>
-      <span class="label label--small lg:label--large">Total</span>
+      <span class="value value--xxsmall">{{ all_sessions }}</span>
+      <span class="label label--small">Total</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="value value--xxsmall lg:value--large">{{ streak }}d</span>
-      <span class="label label--small lg:label--large">Streak</span>
+      <span class="value value--xxsmall">{{ streak }}d</span>
+      <span class="label label--small">Streak</span>
     </div>
   </div>
 

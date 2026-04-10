@@ -3,19 +3,19 @@
 <div class="layout layout--col">
 
   <div class="flex flex--col flex--stretch-x">
-    <span class="label label--filled lg:label--large">EXTRA</span>
-    <span class="value value--small lg:value--xxlarge">${{ extra_spent }}</span>
-    <span class="description lg:description--xlarge">{{ extra_pct }}% of ${{ extra_limit }}</span>
+    <span class="label label--filled">EXTRA</span>
+    <span class="value value--small lg:value--large lg:portrait:value--small">${{ extra_spent }}</span>
+    <span class="description">{{ extra_pct }}% of ${{ extra_limit }}</span>
   </div>
 
   <div class="grid grid--cols-2">
     <div class="flex flex--col flex--stretch-x">
-      <span class="label label--small lg:label--large">Month</span>
-      <span class="value value--xxsmall lg:value--large">${{ month_cost }}</span>
+      <span class="label label--small">Month</span>
+      <span class="value value--xxsmall lg:value--small">${{ month_cost }}</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="label label--small lg:label--large">All Time</span>
-      <span class="value value--xxsmall lg:value--large">${{ all_time_cost }}</span>
+      <span class="label label--small">All Time</span>
+      <span class="value value--xxsmall lg:value--small">${{ all_time_cost }}</span>
     </div>
   </div>
 
@@ -35,33 +35,33 @@
     <div class="track"><div class="fill" style="width:{{ week_all_pct }}%"></div></div>
   </div>
 
-  <div class="grid grid--cols-3">
+  <div class="grid grid--cols-3 lg:grid--cols-2 lg:portrait:grid--cols-3">
     <div class="flex flex--col flex--stretch-x">
-      <span class="value value--xxsmall lg:value--large">{{ today_tokens }}</span>
-      <span class="label label--small lg:label--large">Tokens</span>
+      <span class="value value--xxsmall lg:value--small">{{ today_tokens }}</span>
+      <span class="label label--small">Tokens</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="value value--xxsmall lg:value--large">~${{ today_cost }}</span>
-      <span class="label label--small lg:label--large">API eq.</span>
+      <span class="value value--xxsmall lg:value--small">~${{ today_cost }}</span>
+      <span class="label label--small">API eq.</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="value value--xxsmall lg:value--large">{{ cache_pct }}%</span>
-      <span class="label label--small lg:label--large">Cache</span>
+      <span class="value value--xxsmall lg:value--small">{{ cache_pct }}%</span>
+      <span class="label label--small">Cache</span>
     </div>
   </div>
 
-  <div class="grid grid--cols-3">
+  <div class="grid grid--cols-3 lg:grid--cols-2 lg:portrait:grid--cols-3">
     <div class="flex flex--col flex--stretch-x">
-      <span class="value value--xxsmall lg:value--large">{{ active_now }}</span>
-      <span class="label label--small lg:label--large">Running</span>
+      <span class="value value--xxsmall lg:value--small">{{ active_now }}</span>
+      <span class="label label--small">Running</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="value value--xxsmall lg:value--large">{{ sessions_today }}</span>
-      <span class="label label--small lg:label--large">Today</span>
+      <span class="value value--xxsmall lg:value--small">{{ sessions_today }}</span>
+      <span class="label label--small">Today</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="value value--xxsmall lg:value--large">{{ all_sessions }}</span>
-      <span class="label label--small lg:label--large">Total</span>
+      <span class="value value--xxsmall lg:value--small">{{ all_sessions }}</span>
+      <span class="label label--small">Total</span>
     </div>
   </div>
 
