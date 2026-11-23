@@ -165,7 +165,6 @@ trmnl_plugin/fleet/        templates for the fleet screen
 launchd-setup/             macOS scheduler scripts
 tests/
 tools/preview.py
-worker/                    earlier Claude-only worker, not updated
 ```
 
 ## Credits
