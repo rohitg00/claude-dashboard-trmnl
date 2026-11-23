@@ -19,6 +19,16 @@
       <span class="value value--small lg:value--large lg:portrait:value--small">{{ l.pct }}%</span>
     </div>
     {% endfor %}
+    {% unless limits %}{% if session_pct %}
+    <div class="flex flex--col flex--stretch-x">
+      <span class="label label--small">Session</span>
+      <span class="value value--small lg:value--large lg:portrait:value--small">{{ session_pct }}%</span>
+    </div>
+    <div class="flex flex--col flex--stretch-x">
+      <span class="label label--small">Week</span>
+      <span class="value value--small lg:value--large lg:portrait:value--small">{{ week_all_pct }}%</span>
+    </div>
+    {% endif %}{% endunless %}
     <div class="flex flex--col flex--stretch-x">
       <span class="label label--small">Tokens</span>
       <span class="value value--small lg:value--large lg:portrait:value--small">{{ today_tokens }}</span>
@@ -37,6 +47,6 @@
 </div>
 
 <div class="title_bar">
-  <span class="title">{{ agent_name | default: "Claude Code" }} &middot; {{ streak }}d streak &middot; {{ today_msgs }} reqs</span>
+  <span class="title">{{ agent_name | default: "Claude Code" }} &middot; {{ streak }}d streak &middot; {{ today_msgs }} reqs{% if note and note != "" %} &middot; {{ note }}{% endif %}</span>
   <span class="instance">{{ updated_at }}</span>
 </div>

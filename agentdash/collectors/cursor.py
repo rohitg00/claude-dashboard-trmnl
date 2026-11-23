@@ -27,7 +27,11 @@ def app_state_db():
 
 
 def available():
-    return tracking_db().is_file() or (home() / "projects").is_dir()
+    return (
+        tracking_db().is_file()
+        or (home() / "projects").is_dir()
+        or bool(glob.glob(str(home() / "chats" / "*" / "*" / "store.db")))
+    )
 
 
 def commit_ts(commit_date, scored_at):

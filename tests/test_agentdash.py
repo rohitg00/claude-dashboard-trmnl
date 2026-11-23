@@ -7,6 +7,8 @@ import sys
 import tempfile
 import time
 import unittest
+import urllib.error
+from unittest import mock
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -14,6 +16,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from agentdash import core
+from agentdash import __main__ as cli
 from agentdash import statusline_capture
 from agentdash.collectors import claude, codex, cursor, grok, pi
 from agentdash.collectors.sqlite_agents import Hermes, OpenCode
@@ -38,6 +41,19 @@ class Base(unittest.TestCase):
         self.addCleanup(lambda: (os.environ.clear(), os.environ.update(self.env)))
         os.environ["AGENTDASH_CACHE_DIR"] = str(self.tmp / "cache")
         os.environ["AGENTDASH_CLAUDE_SCRAPE"] = "0"
+        homes = {
+            "HOME": "home",
+            "CLAUDE_CONFIG_DIR": "claude",
+            "CODEX_HOME": "codex",
+            "GROK_HOME": "grok",
+            "CURSOR_HOME": "cursor",
+            "CURSOR_APP_STATE": "cursor-state.vscdb",
+            "HERMES_HOME": "hermes",
+            "PI_CODING_AGENT_DIR": "pi",
+            "XDG_DATA_HOME": "share",
+        }
+        for name, folder in homes.items():
+            os.environ[name] = str(self.tmp / folder)
 
 
 class PricingTest(Base):
@@ -107,6 +123,17 @@ class AggregateTest(Base):
         new = [core.record("b", ts, "claude-opus-5-5", 1_000_000)]
         self.assertEqual(core.aggregate("t", "Test", new, NOW)[0]["all_time_cost"], "8.00")
 
+    def test_snapshot_totals_replace_instead_of_adding(self):
+        ts = NOW.timestamp()
+        day = 86400
+        first = core.record("s1:m", ts - day, "x", 1, cost=5.0, flags=core.SNAPSHOT)
+        self.assertEqual(core.aggregate("h", "H", [first], NOW)[0]["all_time_cost"], "5.00")
+        self.assertEqual(core.aggregate("h", "H", [first], NOW)[0]["all_time_cost"], "5.00")
+        moved = core.record("s1:m", ts, "x", 1, cost=8.0, flags=core.SNAPSHOT)
+        stream = core.record("r1", ts, "x", 1, cost=1.0)
+        out, _ = core.aggregate("h", "H", [moved, stream], NOW)
+        self.assertEqual((out["all_time_cost"], out["today_cost"], out["yesterday_cost"]), ("9.00", "9.00", "0.00"))
+
     def test_expired_limit_resets_to_zero(self):
         past = core.limit("5h", 80, NOW.timestamp() - 60, NOW)
         future = core.limit("5h", 80.4, NOW.timestamp() + 3600, NOW)
@@ -122,6 +149,14 @@ class AggregateTest(Base):
         self.assertEqual([r["name"] for r in fleet["agents"]], ["B", "A"])
         self.assertEqual(fleet["today_cost"], "12.00")
         self.assertLess(len(json.dumps({"merge_variables": fleet})), 5000)
+
+
+class PostTest(Base):
+    def test_socket_timeout_is_reported_not_raised(self):
+        with mock.patch.object(cli.urllib.request, "urlopen", side_effect=TimeoutError("read timed out")):
+            self.assertFalse(cli.post("claude", "https://example.invalid/hook", {"a": "1"}))
+        with mock.patch.object(cli.urllib.request, "urlopen", side_effect=urllib.error.URLError("dns")):
+            self.assertFalse(cli.post("claude", "https://example.invalid/hook", {"a": "1"}))
 
 
 class ClaudeTest(Base):
@@ -331,6 +366,13 @@ class OtherAgentsTest(Base):
         conn.close()
         (rec,) = Hermes.collect(NOW)["records"]
         self.assertEqual((rec[core.COST], rec[core.N]), (0.7, 2))
+        conn = sqlite3.connect(db)
+        conn.execute("insert into sessions values ('s2','claude-sonnet-5',1,5,5,0,0,0.3,null,null,null,?, '/x/demo')", (ts,))
+        conn.commit()
+        conn.close()
+        records = sorted(Hermes.collect(NOW)["records"], key=lambda r: r[core.S])
+        self.assertEqual([(r[core.S], r[core.COST]) for r in records], [("s1", 0.7), ("s2", 0.3)])
+        self.assertTrue(all(r[core.FL] & core.SNAPSHOT for r in records))
 
     def test_pi_uses_reported_cost_or_price_table(self):
         os.environ["PI_CODING_AGENT_DIR"] = str(self.tmp / "pi")
@@ -346,6 +388,11 @@ class OtherAgentsTest(Base):
         out, _ = core.aggregate("pi", "pi", records, NOW)
         self.assertEqual(out["today_cost"], "4.42")
         self.assertEqual(out["note"], "")
+        missing = {"type": "message", "id": "d", "timestamp": iso(NOW), "message": {"role": "assistant", "model": "qwen3:4b", "usage": {"input": 7, "output": 1}}}
+        write_lines(self.tmp / "pi" / "sessions" / "--x-demo--" / "two.jsonl", [missing])
+        records = pi.collect(NOW)["records"]
+        self.assertIsNone([r for r in records if r[core.I] == 7][0][core.COST])
+        self.assertEqual(core.aggregate("pi2", "pi", records, NOW)[0]["unpriced_models"], ["qwen3:4b"])
 
 
 class GrokTest(Base):
@@ -383,6 +430,30 @@ class GrokTest(Base):
         self.assertAlmostEqual(first[core.COST], 1.25)
         self.assertEqual((second[core.I], second[core.O]), (50, 5))
         self.assertAlmostEqual(second[core.COST], 0.1)
+
+    def test_restart_to_zero_keeps_new_baseline(self):
+        t0 = NOW.timestamp()
+        statusline_capture.capture_grok(self.payload(100, 0, 0), t0)
+        statusline_capture.capture_grok(self.payload(0, 0, 0), t0 + 1)
+        statusline_capture.capture_grok(self.payload(150, 0, 0), t0 + 2)
+        records = grok.collect(NOW)["records"]
+        self.assertEqual(sum(r[core.I] for r in records), 250)
+
+    def test_failed_usage_command_is_retried_not_cached(self):
+        session_dir = self.tmp / "grok" / "sessions" / "-x-demo" / "sess-9"
+        session_dir.mkdir(parents=True)
+        (session_dir / "summary.json").write_text(json.dumps({"current_model_id": "grok-code", "info": {"cwd": "/x/demo"}}))
+        fake = self.tmp / "fake-grok"
+        fake.write_text("#!/bin/sh\nexit 1\n")
+        fake.chmod(0o755)
+        with mock.patch.object(grok, "binary", return_value=str(fake)):
+            self.assertEqual(grok.collect(NOW)["records"], [])
+            answer = {"updatedAt": iso(NOW), "session": {"inputTokens": 10, "outputTokens": 2, "costUsdTicks": 5e9}, "turns": [{}, {}]}
+            fake.write_text("#!/bin/sh\ncat <<'JSON'\n" + json.dumps(answer) + "\nJSON\n")
+            (rec,) = grok.collect(NOW)["records"]
+        self.assertEqual((rec[core.I], rec[core.O], rec[core.N], rec[core.P]), (10, 2, 2, "demo"))
+        self.assertAlmostEqual(rec[core.COST], 0.5)
+        self.assertTrue(rec[core.FL] & core.SNAPSHOT)
 
     def test_missing_cost_stays_unknown(self):
         statusline_capture.capture_grok(self.payload(100, 10, 0), NOW.timestamp())
@@ -432,6 +503,13 @@ class CursorTest(Base):
         rows = {r["name"]: r for r in core.fleet([(out, raw), priced])["agents"]}
         self.assertEqual((rows["Cursor"]["today"], rows["Cursor"]["tokens"], rows["Cursor"]["model"]), ("—", "—", "Auto"))
         self.assertEqual(rows["A"]["today"], "$4.00")
+
+    def test_available_with_only_chat_stores(self):
+        self.assertFalse(cursor.available())
+        store = self.tmp / "cursor" / "chats" / "abc" / "def" / "store.db"
+        store.parent.mkdir(parents=True)
+        store.write_bytes(b"")
+        self.assertTrue(cursor.available())
 
 
 if __name__ == "__main__":

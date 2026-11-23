@@ -41,7 +41,7 @@ def capture_grok(data, now=None):
         state["last_cost"] = cost
         state["priced"] = True
 
-    if not any(delta) and not cost_delta:
+    if not restarted and not any(delta) and not cost_delta:
         return
     bucket = state["buckets"].setdefault(str(int(now // BUCKET_SECONDS) * BUCKET_SECONDS), [0, 0, 0, 0, 0.0])
     for i, value in enumerate(delta):

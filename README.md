@@ -124,7 +124,7 @@ The script saves what changed since the last call, in five minute steps, so cost
 - Cost uses the list prices in `agentdash/pricing.json`, checked on 2026-11-23 against the Anthropic and OpenAI pricing pages. It covers 5 minute and 1 hour cache writes, fast mode, web search, and US-only inference.
 - A model that is missing from the table but belongs to a listed family uses that family's price. The title bar then shows `est. price`.
 - A model with no price counts tokens only. The title bar shows `unpriced`. `--dry-run` lists the names in `unpriced_models`.
-- Claude Code deletes transcripts after 30 days unless you raise `cleanupPeriodDays`. Daily totals are kept in `~/.cache/agentdash/<agent>_days.json`, so the all time figure keeps growing after the transcripts are gone. It starts from the oldest transcript present on the first run.
+- Claude Code deletes transcripts after 30 days unless you raise `cleanupPeriodDays`. Daily totals are kept in `~/.cache/agentdash/<agent>_ledger.json`, so the all time figure keeps growing after the transcripts are gone. It starts from the oldest transcript present on the first run. Agents that store running session totals (Hermes, and Grok without the status line) keep only the latest total for each session, so a session that spans several days is not counted twice.
 
 Edit `agentdash/pricing.json` to add or change a price. Set `AGENTDASH_PRICING` to use a file elsewhere.
 

@@ -26,6 +26,22 @@
     <div class="track"><div class="fill" style="width:{{ l.pct }}%"></div></div>
   </div>
   {% endfor %}
+  {% unless limits %}{% if session_pct %}
+  <div class="progress-bar stretch-x">
+    <div class="content">
+      <span class="label label--small">Session &middot; {{ session_reset_short }}</span>
+      <span class="label label--small">{{ session_pct }}%</span>
+    </div>
+    <div class="track"><div class="fill" style="width:{{ session_pct }}%"></div></div>
+  </div>
+  <div class="progress-bar stretch-x">
+    <div class="content">
+      <span class="label label--small">Week &middot; {{ week_all_reset_short }}</span>
+      <span class="label label--small">{{ week_all_pct }}%</span>
+    </div>
+    <div class="track"><div class="fill" style="width:{{ week_all_pct }}%"></div></div>
+  </div>
+  {% endif %}{% endunless %}
 
   <div class="grid grid--cols-3 lg:grid--cols-2 lg:portrait:grid--cols-3">
     <div class="flex flex--col flex--stretch-x">
@@ -65,6 +81,6 @@
 </div>
 
 <div class="title_bar">
-  <span class="title">{{ agent_name | default: "Claude Code" }} &middot; {{ streak }}d streak</span>
+  <span class="title">{{ agent_name | default: "Claude Code" }} &middot; {{ streak }}d streak{% if note and note != "" %} &middot; {{ note }}{% endif %}</span>
   <span class="instance">{{ updated_at }}</span>
 </div>

@@ -15,6 +15,8 @@ Usage:
   python3 claude_usage_scraper.py --debug     # extra verbosity
 """
 
+from __future__ import annotations
+
 import sys
 import time
 import json

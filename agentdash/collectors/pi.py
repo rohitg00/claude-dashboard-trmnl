@@ -40,7 +40,7 @@ def parse_file(path):
             ts = core.parse_ts(entry.get("timestamp")) or core.parse_ts(msg.get("timestamp"))
             cost = (usage.get("cost") or {}).get("total")
             priced, _ = core.find_price(msg.get("model"))
-            if not cost and priced:
+            if cost is None or (not cost and priced):
                 cost = None
             else:
                 cost = float(cost or 0)

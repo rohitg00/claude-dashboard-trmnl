@@ -37,6 +37,8 @@ def post(name, url, variables):
         print(f"[{name}] TRMNL responded {err.code}: {err.read().decode('utf-8', 'replace')[:200]}", file=sys.stderr)
     except urllib.error.URLError as err:
         print(f"[{name}] post failed: {err.reason}", file=sys.stderr)
+    except OSError as err:
+        print(f"[{name}] post failed: {type(err).__name__}: {err}", file=sys.stderr)
     return False
 
 

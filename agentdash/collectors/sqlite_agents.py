@@ -81,18 +81,24 @@ class Hermes:
     def collect(cls, now):
         conn = connect(cls.db())
         try:
-            rows = conn.execute(
-                "select u.session_id, u.model, u.task, u.billing_provider, u.api_call_count, u.input_tokens, "
-                "u.output_tokens, u.cache_read_tokens, u.cache_write_tokens, u.actual_cost_usd, "
-                "u.estimated_cost_usd, coalesce(u.last_seen, s.started_at), s.cwd "
-                "from session_model_usage u join sessions s on s.id = u.session_id"
-            ).fetchall()
-            if not rows:
+            has_detail = conn.execute(
+                "select 1 from sqlite_master where type = 'table' and name = 'session_model_usage'"
+            ).fetchone()
+            rows = []
+            totals = (
+                "select id, model, '', '', api_call_count, input_tokens, output_tokens, cache_read_tokens, "
+                "cache_write_tokens, actual_cost_usd, estimated_cost_usd, "
+                "coalesce(last_activity_at, ended_at, started_at), cwd from sessions"
+            )
+            if has_detail:
                 rows = conn.execute(
-                    "select id, model, '', '', api_call_count, input_tokens, output_tokens, cache_read_tokens, "
-                    "cache_write_tokens, actual_cost_usd, estimated_cost_usd, "
-                    "coalesce(last_activity_at, ended_at, started_at), cwd from sessions"
+                    "select u.session_id, u.model, u.task, u.billing_provider, u.api_call_count, u.input_tokens, "
+                    "u.output_tokens, u.cache_read_tokens, u.cache_write_tokens, u.actual_cost_usd, "
+                    "u.estimated_cost_usd, coalesce(u.last_seen, s.started_at), s.cwd "
+                    "from session_model_usage u join sessions s on s.id = u.session_id"
                 ).fetchall()
+                totals += " where id not in (select session_id from session_model_usage)"
+            rows += conn.execute(totals).fetchall()
         finally:
             conn.close()
         records = []
@@ -107,6 +113,7 @@ class Hermes:
                     out,
                     cr,
                     cw,
+                    flags=core.SNAPSHOT,
                     cost=float(cost) if cost is not None else None,
                     session=session,
                     project=os.path.basename(str(cwd or "").rstrip("/")),

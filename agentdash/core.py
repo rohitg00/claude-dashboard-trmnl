@@ -10,6 +10,7 @@ from pathlib import Path
 K, T, M, I, O, CR, CW, CW1H, FL, WS, COST, S, P, N = range(14)
 FAST = 1
 US_GEO = 2
+SNAPSHOT = 4
 
 PRICING_FILE = Path(os.environ.get("AGENTDASH_PRICING", Path(__file__).parent / "pricing.json"))
 _DATE_SUFFIX = re.compile(r"-\d{8}$")
@@ -207,17 +208,24 @@ def short_model(model):
     return name[7:] if name.startswith("claude-") else name
 
 
-def merge_ledger(name, days):
-    path = cache_dir() / f"{name}_days.json"
+def merge_ledger(name, days, snapshots):
+    path = cache_dir() / f"{name}_ledger.json"
     ledger = read_json(path, {}) or {}
+    stored_days = ledger.setdefault("days", {})
+    stored_snapshots = ledger.setdefault("snapshots", {})
     changed = False
     for day, cost in days.items():
-        if cost > ledger.get(day, -1):
-            ledger[day] = round(cost, 6)
+        if cost > stored_days.get(day, -1):
+            stored_days[day] = round(cost, 6)
+            changed = True
+    for key, (day, cost) in snapshots.items():
+        entry = [day, round(cost, 6)]
+        if stored_snapshots.get(key) != entry:
+            stored_snapshots[key] = entry
             changed = True
     if changed:
         write_json(path, ledger)
-    return ledger
+    return sum(stored_days.values()) + sum(cost for _, cost in stored_snapshots.values())
 
 
 def aggregate(agent, label, records, now=None, limits=None, extra=None, footer="", use_ledger=True):
@@ -230,6 +238,7 @@ def aggregate(agent, label, records, now=None, limits=None, extra=None, footer="
 
     seen = set()
     day_cost, day_tokens = {}, {}
+    stream_cost, snapshots = {}, {}
     model_tokens, model_reqs = {}, {}
     sessions = {}
     unpriced, estimated = set(), set()
@@ -255,6 +264,10 @@ def aggregate(agent, label, records, now=None, limits=None, extra=None, footer="
         elif status == "estimated":
             estimated.add(short_model(rec[M]))
         day_cost[day] = day_cost.get(day, 0.0) + cost
+        if rec[FL] & SNAPSHOT and key is not None:
+            snapshots[key] = [day, cost]
+        else:
+            stream_cost[day] = stream_cost.get(day, 0.0) + cost
         day_tokens[day] = day_tokens.get(day, 0) + tokens
         sess = sessions.setdefault(rec[S] or key or day, [ts, ts])
         if ts < sess[0]:
@@ -290,8 +303,10 @@ def aggregate(agent, label, records, now=None, limits=None, extra=None, footer="
     yesterday_cost = day_cost.get(yesterday, 0.0)
     week_cost = cost_since(week_start)
     month_cost = cost_since(month_start)
-    ledger = merge_ledger(agent, day_cost) if use_ledger else day_cost
-    all_time_cost = sum(ledger.values())
+    if use_ledger:
+        all_time_cost = merge_ledger(agent, stream_cost, snapshots)
+    else:
+        all_time_cost = sum(day_cost.values())
 
     days_in_month = monthrange(now.year, now.month)[1]
     daily_avg = month_cost / now.day

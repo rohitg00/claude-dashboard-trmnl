@@ -53,7 +53,7 @@ def pick(obj, names):
 def usage_record(session, summary):
     proc = subprocess.run([binary(), "usage", session], capture_output=True, text=True, timeout=30)
     if proc.returncode != 0:
-        return None
+        raise subprocess.CalledProcessError(proc.returncode, proc.args)
     data = json.loads(proc.stdout)
     totals = data.get("session") or {}
     ticks = pick(totals, FIELDS["ticks"])
@@ -68,6 +68,7 @@ def usage_record(session, summary):
         pick(totals, FIELDS["out"]),
         pick(totals, FIELDS["cr"]),
         pick(totals, FIELDS["cw"]),
+        flags=core.SNAPSHOT,
         cost=usd,
         session=session,
         project=os.path.basename(str(info.get("cwd") or "").rstrip("/")),
