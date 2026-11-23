@@ -1,0 +1,63 @@
+<div class="layout layout--col">
+
+  <div class="flex flex--col flex--stretch-x">
+    <span class="label label--filled">AI SHARE</span>
+    <span class="value value--small lg:value--large lg:portrait:value--small">{{ ai_pct_all }}%</span>
+    <span class="description">of committed lines</span>
+  </div>
+
+  <div class="grid grid--cols-2">
+    <div class="flex flex--col flex--stretch-x">
+      <span class="label label--small">Lines</span>
+      <span class="value value--xxsmall lg:value--small">{{ lines_all }}</span>
+    </div>
+    <div class="flex flex--col flex--stretch-x">
+      <span class="label label--small">Commits</span>
+      <span class="value value--xxsmall lg:value--small">{{ commits_all }}</span>
+    </div>
+  </div>
+
+  <div class="progress-bar stretch-x">
+    <div class="content">
+      <span class="label label--small">Written in Cursor</span>
+      <span class="label label--small">{{ cursor_pct }}%</span>
+    </div>
+    <div class="track"><div class="fill" style="width:{{ cursor_pct }}%"></div></div>
+  </div>
+
+  <div class="grid grid--cols-3 lg:grid--cols-2 lg:portrait:grid--cols-3">
+    <div class="flex flex--col flex--stretch-x">
+      <span class="value value--xxsmall lg:value--small">{{ composer_lines }}</span>
+      <span class="label label--small">Composer</span>
+    </div>
+    <div class="flex flex--col flex--stretch-x">
+      <span class="value value--xxsmall lg:value--small">{{ other_lines }}</span>
+      <span class="label label--small">Other AI</span>
+    </div>
+    <div class="flex flex--col flex--stretch-x">
+      <span class="value value--xxsmall lg:value--small">{{ human_lines }}</span>
+      <span class="label label--small">Human</span>
+    </div>
+  </div>
+
+  <div class="grid grid--cols-3 lg:grid--cols-2 lg:portrait:grid--cols-3">
+    <div class="flex flex--col flex--stretch-x">
+      <span class="value value--xxsmall lg:value--small">{{ active_now }}</span>
+      <span class="label label--small">Running</span>
+    </div>
+    <div class="flex flex--col flex--stretch-x">
+      <span class="value value--xxsmall lg:value--small">{{ week_sessions }}</span>
+      <span class="label label--small">Week</span>
+    </div>
+    <div class="flex flex--col flex--stretch-x">
+      <span class="value value--xxsmall lg:value--small">{{ all_sessions }}</span>
+      <span class="label label--small">Sessions</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="title_bar">
+  <span class="title">{{ agent_name }} &middot; {{ last_active }}</span>
+  <span class="instance">{{ updated_at }}</span>
+</div>

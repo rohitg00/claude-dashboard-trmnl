@@ -15,6 +15,8 @@ Usage:
   python3 claude_usage_scraper.py --debug     # extra verbosity
 """
 
+from __future__ import annotations
+
 import sys
 import time
 import json
@@ -146,6 +148,9 @@ def scrape() -> dict:
     max_retries = 5
     for attempt in range(max_retries):
         if "% used" in final_screen:
+            break
+        if "Failed to load usage data" in final_screen:
+            info("Claude /usage backend returned error — skipping retry loop")
             break
         info(f"Usage data not loaded yet, retrying ({attempt + 1}/{max_retries})…")
         time.sleep(2.0)

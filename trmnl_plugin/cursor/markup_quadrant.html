@@ -1,0 +1,30 @@
+<div class="layout layout--col">
+
+  <div class="grid grid--cols-3 lg:grid--cols-2 lg:portrait:grid--cols-1">
+    <div class="flex flex--col flex--stretch-x">
+      <span class="label label--filled">AI SHARE</span>
+      <span class="value value--xxsmall lg:value--small">{{ ai_pct_all }}%</span>
+    </div>
+    <div class="flex flex--col flex--stretch-x">
+      <span class="label label--small">Commits</span>
+      <span class="value value--xxsmall lg:value--small">{{ commits_all }}</span>
+    </div>
+    <div class="flex flex--col flex--stretch-x">
+      <span class="label label--small">Sessions</span>
+      <span class="value value--xxsmall lg:value--small">{{ all_sessions }}</span>
+    </div>
+  </div>
+
+  <div class="flex flex--row gap--small">
+    {% if model != "" %}<span class="label label--filled">{{ model }}</span>{% endif %}
+    <span class="label label--small">{{ active_now }} run</span>
+    <span class="label label--small">&middot;</span>
+    <span class="label label--small">last {{ last_active }}</span>
+  </div>
+
+</div>
+
+<div class="title_bar">
+  <span class="title">{{ agent_name }}</span>
+  <span class="instance">{{ updated_at }}</span>
+</div>

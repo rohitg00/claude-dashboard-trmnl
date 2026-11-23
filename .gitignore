@@ -5,8 +5,6 @@ __pycache__/
 codedb.snapshot
 node_modules/
 dist/
-worker/node_modules/
-worker/dist/
 
 # C extensions
 *.so

@@ -1,13 +1,10 @@
-<!-- Claude Code Dashboard — Full -->
-
 <div class="layout layout--col">
 
-  <!-- Costs -->
   <div class="grid grid--cols-4 lg:grid--cols-2 lg:portrait:grid--cols-4">
     <div class="flex flex--col flex--stretch-x">
-      <span class="label label--filled">EXTRA</span>
-      <span class="value value--small lg:value--large lg:portrait:value--small">${{ extra_spent }}</span>
-      <span class="description lg:portrait:description">{{ extra_pct }}% of ${{ extra_limit }}</span>
+      <span class="label label--filled">TODAY</span>
+      <span class="value value--small lg:value--large lg:portrait:value--small">${{ today_cost }}</span>
+      <span class="description lg:portrait:description">{{ cost_trend }} vs yesterday</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
       <span class="label label--small">Week</span>
@@ -23,7 +20,16 @@
     </div>
   </div>
 
-  <!-- Rate limit bars -->
+  {% for l in limits limit: 2 %}
+  <div class="progress-bar stretch-x">
+    <div class="content">
+      <span class="label">{{ l.label }} &middot; {{ l.reset }}</span>
+      <span class="value value--xxsmall">{{ l.pct }}%</span>
+    </div>
+    <div class="track"><div class="fill" style="width:{{ l.pct }}%"></div></div>
+  </div>
+  {% endfor %}
+  {% unless limits %}{% if session_pct %}
   <div class="progress-bar stretch-x">
     <div class="content">
       <span class="label">Session &middot; {{ session_reset_short }}</span>
@@ -31,16 +37,15 @@
     </div>
     <div class="track"><div class="fill" style="width:{{ session_pct }}%"></div></div>
   </div>
-
   <div class="progress-bar stretch-x">
     <div class="content">
-      <span class="label">Week All &middot; {{ week_all_reset_short }}</span>
+      <span class="label">Week &middot; {{ week_all_reset_short }}</span>
       <span class="value value--xxsmall">{{ week_all_pct }}%</span>
     </div>
     <div class="track"><div class="fill" style="width:{{ week_all_pct }}%"></div></div>
   </div>
+  {% endif %}{% endunless %}
 
-  <!-- Token breakdown -->
   <div class="grid grid--cols-5">
     <div class="flex flex--col flex--stretch-x">
       <span class="label label--small">Input</span>
@@ -64,15 +69,10 @@
     </div>
   </div>
 
-  <!-- Cost stats -->
   <div class="grid grid--cols-5">
     <div class="flex flex--col flex--stretch-x">
-      <span class="value value--xxsmall">~${{ today_cost }}</span>
-      <span class="label label--small">API equiv.</span>
-    </div>
-    <div class="flex flex--col flex--stretch-x">
       <span class="value value--xxsmall">{{ today_msgs }}</span>
-      <span class="label label--small">Messages</span>
+      <span class="label label--small">Requests</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
       <span class="value value--xxsmall">{{ cache_pct }}%</span>
@@ -86,9 +86,12 @@
       <span class="value value--xxsmall">${{ cost_per_req }}</span>
       <span class="label label--small">Per Req</span>
     </div>
+    <div class="flex flex--col flex--stretch-x">
+      <span class="value value--xxsmall">${{ projected_cost }}</span>
+      <span class="label label--small">Projected</span>
+    </div>
   </div>
 
-  <!-- Sessions + model -->
   <div class="grid grid--cols-6 lg:grid--cols-3 lg:portrait:grid--cols-6">
     <div class="flex flex--col flex--stretch-x">
       <span class="value value--xxsmall">{{ active_now }}</span>
@@ -117,15 +120,14 @@
   </div>
 
   <div class="flex flex--row gap--small">
-    <span class="label label--filled">{{ primary_model }} {{ primary_pct }}%</span>
-    <span class="label label--small">{{ hours_today }} coded</span>
-    {% if sonnet_pct != "0" %}<span class="label label--small">&middot; sonnet {{ sonnet_pct }}%</span>{% endif %}
-    {% if haiku_pct != "0" %}<span class="label label--small">&middot; haiku {{ haiku_pct }}%</span>{% endif %}
+    {% for m in models %}<span class="label {% if forloop.first %}label--filled{% else %}label--small{% endif %}">{{ m.name }} {{ m.pct }}%</span>{% endfor %}
+    {% unless models %}{% if primary_model %}<span class="label label--filled">{{ primary_model }} {{ primary_pct }}%</span>{% endif %}{% endunless %}
+    <span class="label label--small">&middot; {{ hours_today }} today</span>
   </div>
 
 </div>
 
 <div class="title_bar">
-  <span class="title">Claude Code &middot; {{ plugin_count }} plugins &middot; {{ mcp_count }} MCPs &middot; ~${{ projected_cost }} proj</span>
+  <span class="title">{{ agent_name | default: "Claude Code" }}{% if footer != "" %} &middot; {{ footer }}{% endif %}{% if note != "" %} &middot; {{ note }}{% endif %}</span>
   <span class="instance">{{ updated_at }}</span>
 </div>

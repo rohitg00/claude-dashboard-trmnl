@@ -3,24 +3,29 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-cd "$SCRIPT_DIR"
+cd "$PROJECT_DIR"
 
-if [ -f "$PROJECT_DIR/.env" ]; then
-  set -a
-  source "$PROJECT_DIR/.env"
-  set +a
-elif [ -f .env ]; then
-  set -a
-  source .env
-  set +a
-fi
+for env_file in "$PROJECT_DIR/.env" "$SCRIPT_DIR/.env"; do
+  if [ -f "$env_file" ]; then
+    set -a
+    source "$env_file"
+    set +a
+    break
+  fi
+done
 
-source "$PROJECT_DIR/venv/bin/activate"
+for venv in "$PROJECT_DIR/venv" "$SCRIPT_DIR/venv"; do
+  if [ -f "$venv/bin/activate" ]; then
+    source "$venv/bin/activate"
+    break
+  fi
+done
 
-CLAUDE_BIN="$(command -v claude 2>/dev/null || echo "")"
-if [ -n "$CLAUDE_BIN" ]; then
-  CLAUDE_DIR="$(dirname "$CLAUDE_BIN")"
-  export PATH="$CLAUDE_DIR:$PATH"
-fi
+for bin in claude grok; do
+  BIN_PATH="$(command -v "$bin" 2>/dev/null || true)"
+  if [ -n "$BIN_PATH" ]; then
+    export PATH="$(dirname "$BIN_PATH"):$PATH"
+  fi
+done
 
-python3 post_trmnl.py
+exec python3 -m agentdash "$@"

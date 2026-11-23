@@ -1,0 +1,42 @@
+<div class="layout layout--col">
+
+  <div class="grid grid--cols-6 lg:grid--cols-3 lg:portrait:grid--cols-6">
+    <div class="flex flex--col flex--stretch-x">
+      <span class="label label--filled">AI SHARE</span>
+      <span class="value value--small lg:value--large lg:portrait:value--small">{{ ai_pct_all }}%</span>
+    </div>
+    <div class="flex flex--col flex--stretch-x">
+      <span class="label label--small">In Cursor</span>
+      <span class="value value--small lg:value--large lg:portrait:value--small">{{ cursor_pct }}%</span>
+    </div>
+    <div class="flex flex--col flex--stretch-x">
+      <span class="label label--small">Lines</span>
+      <span class="value value--small lg:value--large lg:portrait:value--small">{{ lines_all }}</span>
+    </div>
+    <div class="flex flex--col flex--stretch-x">
+      <span class="label label--small">Commits</span>
+      <span class="value value--small lg:value--large lg:portrait:value--small">{{ commits_all }}</span>
+    </div>
+    <div class="flex flex--col flex--stretch-x">
+      <span class="label label--small">Sessions</span>
+      <span class="value value--small lg:value--large lg:portrait:value--small">{{ all_sessions }}</span>
+    </div>
+    <div class="flex flex--col flex--stretch-x">
+      <span class="label label--small">Week</span>
+      <span class="value value--small lg:value--large lg:portrait:value--small">{{ week_sessions }}</span>
+    </div>
+  </div>
+
+  <div class="flex flex--row gap--small">
+    {% if model != "" %}<span class="label label--filled">{{ model }}</span>{% endif %}
+    <span class="label label--small">{{ active_now }} running</span>
+    <span class="label label--small">&middot;</span>
+    <span class="label label--small">{{ commits_week }} commits this week</span>
+  </div>
+
+</div>
+
+<div class="title_bar">
+  <span class="title">{{ agent_name }} &middot; last active {{ last_active }}</span>
+  <span class="instance">{{ updated_at }}</span>
+</div>

@@ -1,218 +1,176 @@
-# Claude Code Dashboard → TRMNL
+# Coding agent dashboards for TRMNL
 
-Full dashboard for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) on a [TRMNL](https://usetrmnl.com) e-ink display. Rate limits, extra usage billing, costs, sessions, cache efficiency, streak — powered by [iii-engine](https://iii.dev).
+Usage dashboards for coding agents on a [TRMNL](https://trmnl.com) e-ink display. One private plugin per agent, plus a fleet plugin that shows all of them in one table.
 
 ![Claude Code Dashboard on TRMNL](trmnl-screenshot.png)
 
-## What's on the Dashboard
+The screenshot shows the earlier Claude-only layout.
 
-- **Extra Usage** — real Anthropic billing ($42.30 / $50 limit, 84%)
-- **Rate Limits** — session % and week % with reset times
-- **Cost Tracking** — today, week, month, all-time (per-model pricing from Claude Code source)
-- **Token Breakdown** — input, output, cache read, cache write, total
-- **Sessions** — running, today, week, month, total, streak days, hours coded
-- **Efficiency** — API equiv. cost, messages, cache hit %, cost/req, cache savings
-- **Model Usage** — primary model badge, conditional sonnet/haiku when used
-- **Setup** — plugins, MCPs, projected monthly cost
+## Agents
 
-4 layout sizes: full, half vertical, half horizontal, quadrant.
+| Agent | Source on disk | Cost | Rate limits |
+|---|---|---|---|
+| Claude Code | `~/.claude/projects/**/*.jsonl`, subagent transcripts included | price table | status line capture, or `/usage` screen fallback |
+| Codex | `~/.codex/sessions` and `archived_sessions`, `.jsonl` and `.jsonl.zst` | price table | last `rate_limits` event in the rollouts, plus plan and credits |
+| Grok | status line capture, or `~/.grok/sessions` with `grok usage <session-id>` | reported by Grok | not available from the shell |
+| Cursor | `~/.cursor/ai-tracking/ai-code-tracking.db`, agent transcripts in `~/.cursor/projects` | not stored locally | not stored locally |
+| OpenCode | `~/.local/share/opencode/opencode.db` | reported by OpenCode | none |
+| pi | `~/.pi/agent/sessions/**/*.jsonl` | reported by pi, price table when pi reports 0 | none |
+| Hermes | `~/.hermes/state.db` | reported by Hermes | none |
 
-## Architecture
+Everything is read from local files. Nothing is sent anywhere except the TRMNL webhooks you set.
 
-Two setup options — iii worker (recommended) or launchd fallback.
+The Grok collector follows the Grok user guide and is tested against the documented payload. It has not run against a live Grok session yet, so check its numbers the first time.
 
-### Option 1: iii Worker (Recommended)
+Cursor keeps no token or cost data on disk. Its screen shows what Cursor does record: how many committed lines were written by AI, how many of those came from Composer and Tab, commits scored, and agent sessions. The AI share is Cursor's own score for each commit, weighted by lines.
 
-The iii worker registers functions and cron triggers against a running iii-engine. Real-time cost tracking via `chat::completed` events, cron-based TRMNL posting, state persistence in iii KV.
+## What each screen shows
 
-```
-iii-engine (ws://localhost:49134)
-  └─ claude-dashboard-trmnl worker
-       ├─ trmnl::refresh          [cron 5min] → parse sessions + scrape /usage + POST webhook
-       ├─ trmnl::on_chat_completed [subscribe] → real-time cost tracking in iii state
-       ├─ GET  /api/trmnl/health   [http] → last update status
-       └─ POST /api/trmnl/refresh  [http] → manual trigger
-                                     ↓
-                               TRMNL webhook → e-ink display
-```
+- Cost: today, week, month, all time, projected month, change against yesterday
+- Rate limit bars with reset times, when the agent exposes them
+- Tokens today: input, output, cache read, cache write, total
+- Requests, cache hit rate, cache savings, cost per request
+- Sessions: running, today, week, month, total, streak
+- Model mix for the month
 
-### Option 2: launchd (macOS fallback)
-
-Python scripts scheduled via macOS launchd. No iii-engine required.
-
-```
-launchd (every 5 min) → run.sh → Python scripts → POST webhook
-```
-
-## Prerequisites
-
-### For iii Worker
-- [iii CLI](https://iii.dev/docs) installed: `curl -fsSL https://install.iii.dev/iii/main/install.sh | sh`
-- iii-engine running (`iii --config iii-config.yaml`)
-- Node.js 20+
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) in your PATH
-- [TRMNL](https://usetrmnl.com) device with a Private Plugin
-
-### For launchd
-- macOS with Python 3
-- Claude Code in your PATH
-- TRMNL device with a Private Plugin
+Four layouts each: full, half horizontal, half vertical, quadrant.
 
 ## Setup
 
-### iii Worker Setup
+Python 3.9 or later. No packages are needed unless you use the Claude `/usage` screen fallback.
 
 ```bash
 git clone https://github.com/rohitg00/claude-dashboard-trmnl.git
-cd claude-dashboard-trmnl/worker
+cd claude-dashboard-trmnl
 
-npm install
-npm run build
-
-# Set your webhook URL
-export TRMNL_WEBHOOK_URL=https://trmnl.com/api/custom_plugins/YOUR-UUID
-
-# Start (connects to running iii-engine on localhost:49134)
-npm start
-
-# Or run with iii CLI
-iii --config iii-config.yaml
+python3 -m agentdash --list
+python3 -m agentdash --dry-run
 ```
 
-### launchd Setup (macOS fallback)
+`--list` shows which agents have data on this machine. `--dry-run` prints every payload and posts nothing.
+
+### TRMNL plugins
+
+For each agent you want on the display:
+
+1. TRMNL → Plugins → Private Plugin → new. Set the strategy to Webhook.
+2. Paste the four files from `trmnl_plugin/` into the matching markup tabs. The same four files work for every agent except Cursor, which has its own set in `trmnl_plugin/cursor/`.
+3. Copy the webhook URL into `.env` under that agent's variable.
+
+For the fleet screen, do the same with the files in `trmnl_plugin/fleet/`.
 
 ```bash
-cd claude-dashboard-trmnl/launchd-setup
-
-cp ../env.example .env
-# Edit .env — add your TRMNL_WEBHOOK_URL
-
-./setup.sh           # create venv, install deps
-claude                # trust the folder, then /exit
-./run.sh              # test
-./install.sh          # schedule every 5 min
+TRMNL_WEBHOOK_URL_CLAUDE=https://trmnl.com/api/custom_plugins/...
+TRMNL_WEBHOOK_URL_CODEX=https://trmnl.com/api/custom_plugins/...
+TRMNL_WEBHOOK_URL_GROK=
+TRMNL_WEBHOOK_URL_CURSOR=
+TRMNL_WEBHOOK_URL_OPENCODE=
+TRMNL_WEBHOOK_URL_PI=
+TRMNL_WEBHOOK_URL_HERMES=
+TRMNL_WEBHOOK_URL_FLEET=https://trmnl.com/api/custom_plugins/...
 ```
 
-### TRMNL Private Plugin
+The old `TRMNL_WEBHOOK_URL` still works for Claude. An agent with no variable is collected for the fleet screen and not posted on its own.
 
-1. TRMNL dashboard → **Plugins → Private Plugin** → create new
-2. Paste markup from `trmnl_plugin/` into each tab:
-   - `markup_full.html` → **Full**
-   - `markup_half_vertical.html` → **Half Vertical**
-   - `markup_half_horizontal.html` → **Half Horizontal**
-   - `markup_quadrant.html` → **Quadrant**
-3. Copy the webhook URL and set as `TRMNL_WEBHOOK_URL`
-4. Set refresh interval to **15 minutes**
-5. Add Form Fields YAML from `trmnl_plugin/plugin.yml`
+### Updating from the Claude-only version
 
-## Pricing Tiers
+The Claude payload still carries every variable the earlier markup used, so a plugin with the old markup keeps working after you update the scripts. The new markup also renders with the old script. Update either side first.
 
-Cost calculation matches Claude Code's internal pricing (`src/utils/modelCost.ts`):
+Costs will drop after the update. The earlier script counted streamed responses more than once and used older prices.
 
-| Tier | Models | Input/Mtok | Output/Mtok | Cache Read | Cache Write |
-|---|---|---|---|---|---|
-| opus_new | Opus 4.5, 4.6 | $5 | $25 | $0.50 | $6.25 |
-| opus_fast | Opus 4.6 (fast mode) | $30 | $150 | $3.00 | $37.50 |
-| opus_old | Opus 4.0, 4.1 | $15 | $75 | $1.50 | $18.75 |
-| sonnet | All Sonnet | $3 | $15 | $0.30 | $3.75 |
-| haiku_45 | Haiku 4.5 | $1 | $5 | $0.10 | $1.25 |
-| haiku_35 | Haiku 3.5 | $0.80 | $4 | $0.08 | $1.00 |
+### Run and schedule
 
-Web search: $0.01 per request. Fast mode detected via `usage.speed === "fast"` in session data.
-
-## Data Flow
-
-```
-Claude Code session files (~/.claude/projects/**/*.jsonl)
-  ├─ Each assistant message has: model, input_tokens, output_tokens, cache tokens, speed, web_search_requests
-  ├─ Parsed to calculate: costs (per-model tiered pricing), sessions, streaks
-  └─ Tracks fast mode and web search costs
-
-Claude Code /usage (scraped via pexpect + pyte)
-  ├─ Session %, Week All %, Sonnet %
-  └─ Extra Usage: $spent / $limit, % used, reset date
-
-~/.claude/plugins/installed_plugins.json → plugin count
-~/.claude/settings.json + Claude Desktop config → MCP count
-
-All merged → POST to TRMNL webhook → rendered on e-ink
+```bash
+cd launchd-setup
+./run.sh --dry-run
+./run.sh
+./install.sh
 ```
 
-## Template Variables
+`install.sh` adds a launchd job that runs every 10 minutes. TRMNL accepts 12 posts an hour for each plugin and 5 KB for each payload. The payloads here are about 1.4 KB.
 
-| Variable | Example | Source |
-|---|---|---|
-| `extra_spent` | `42.30` | Claude /usage |
-| `extra_limit` | `50.00` | Claude /usage |
-| `extra_pct` | `84` | Claude /usage |
-| `session_pct` | `3` | Claude /usage |
-| `session_reset_short` | `5pm` | Claude /usage |
-| `week_all_pct` | `18` | Claude /usage |
-| `week_all_reset_short` | `Mon 5pm` | Claude /usage |
-| `today_cost` | `27.06` | Session files |
-| `yesterday_cost` | `18.50` | Session files |
-| `week_cost` | `5.0k` | Session files |
-| `month_cost` | `5.5k` | Session files |
-| `all_time_cost` | `12k` | Session files |
-| `projected_cost` | `28k` | Session files |
-| `daily_avg` | `180` | Session files |
-| `cost_trend` | `+46%` | Session files |
-| `avg_session_cost` | `250` | Session files |
-| `today_tokens` | `327M` | Session files |
-| `today_input` | `9K` | Session files |
-| `today_output` | `338K` | Session files |
-| `today_cache_read` | `306.6M` | Session files |
-| `today_cache_write` | `20.1M` | Session files |
-| `today_requests` | `1123` | Session files |
-| `today_msgs` | `1123` | Session files |
-| `cache_pct` | `94` | Session files |
-| `cache_savings` | `1.4k` | Session files |
-| `cost_per_req` | `0.26` | Session files |
-| `week_tokens` | `1.8B` | Session files |
-| `week_cost` | `1.6k` | Session files |
-| `week_msgs` | `7201` | Session files |
-| `week_sessions` | `18` | Session files |
-| `active_now` | `3` | Session files |
-| `sessions_today` | `5` | Session files |
-| `month_sessions` | `31` | Session files |
-| `all_sessions` | `71` | Session files |
-| `streak` | `14` | Session files |
-| `hours_today` | `12.5h` | Session files |
-| `primary_model` | `opus` | Session files |
-| `primary_pct` | `100` | Session files |
-| `model_line` | `opus:15228` | Session files |
-| `opus_tokens` | `4.1B` | Session files |
-| `opus_pct` | `100` | Session files |
-| `sonnet_tokens` | `0` | Session files |
-| `sonnet_pct` | `0` | Session files |
-| `haiku_tokens` | `0` | Session files |
-| `haiku_pct` | `0` | Session files |
-| `top_project` | `kubectl-mcp` | Session files |
-| `top_proj_cost` | `1.2k` | Session files |
-| `plugin_count` | `15` | Plugins file |
-| `mcp_count` | `1` | Settings files |
-| `updated_at` | `Apr 9 at 9:45PM` | Generated |
+The first run reads every transcript and can take half a minute. Later runs reuse a cache in `~/.cache/agentdash` and take about a second.
 
-## Project Structure
+### Claude rate limits
+
+Claude Code passes `rate_limits` to the status line command. Send that JSON to the capture script and the dashboard reads the five hour and weekly windows from it. In a status line script that already holds the input in `$input`:
+
+```bash
+echo "$input" | python3 /path/to/claude-dashboard-trmnl/agentdash/statusline_capture.py
+```
+
+Claude Code sends `rate_limits` on Pro, Max and Ultra plans, after the first response in a session.
+
+With no capture newer than six hours, the collector opens `claude` in a pseudo terminal and reads the `/usage` screen. That path needs `pexpect` and `pyte` (`./setup.sh` installs them) and starts a Claude session on each run. Set `AGENTDASH_CLAUDE_SCRAPE=0` to turn it off.
+
+### Grok usage
+
+Grok sends session tokens and cost to a status line command. Point it at the capture script in `~/.grok/config.toml`:
+
+```toml
+[ui.status_line]
+type = "command"
+command = "python3 /path/to/claude-dashboard-trmnl/agentdash/statusline_capture.py grok"
+```
+
+The script saves what changed since the last call, in five minute steps, so cost lands on the right day. It prints the model and session cost as the status row. Sessions that never had the status line fall back to `grok usage <session-id>`, which gives one total for each session.
+
+## How the numbers are worked out
+
+- Claude Code writes one transcript line for each content block, so one response can appear several times with the same usage. Each response is counted once, by message ID and request ID, across all files.
+- Subagent transcripts in `<session>/subagents/` count toward their parent session.
+- Codex rollouts use the per-response `token_usage_record` lines. Older rollouts fall back to `token_count` events. Cached input is split out of input.
+- Days are local time.
+- Cost uses the list prices in `agentdash/pricing.json`, checked on 2026-11-23 against the Anthropic and OpenAI pricing pages. It covers 5 minute and 1 hour cache writes, fast mode, web search, and US-only inference.
+- A model that is missing from the table but belongs to a listed family uses that family's price. The title bar then shows `est. price`.
+- A model with no price counts tokens only. The title bar shows `unpriced`. `--dry-run` lists the names in `unpriced_models`.
+- Claude Code deletes transcripts after 30 days unless you raise `cleanupPeriodDays`. Daily totals are kept in `~/.cache/agentdash/<agent>_ledger.json`, so the all time figure keeps growing after the transcripts are gone. It starts from the oldest transcript present on the first run. Agents that store running session totals (Hermes, and Grok without the status line) keep only the latest total for each session, so a session that spans several days is not counted twice.
+
+Edit `agentdash/pricing.json` to add or change a price. Set `AGENTDASH_PRICING` to use a file elsewhere.
+
+## Settings
+
+| Variable | Use |
+|---|---|
+| `TRMNL_WEBHOOK_URL_<AGENT>` | webhook for one agent or for `FLEET` |
+| `AGENTDASH_AGENTS` | comma list of agents to collect, default all |
+| `AGENTDASH_CLAUDE_SCRAPE` | `0` turns off the `/usage` screen fallback |
+| `AGENTDASH_CACHE_DIR` | cache folder, default `~/.cache/agentdash` |
+| `AGENTDASH_PRICING` | path to a different price table |
+| `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `GROK_HOME`, `CURSOR_HOME`, `HERMES_HOME`, `PI_CODING_AGENT_DIR` | data folder overrides |
+
+## Add an agent
+
+A collector is a module or class in `agentdash/collectors/` with `NAME`, `LABEL`, `available()` and `collect(now)`. `collect` returns `{"records": [...]}` built with `core.record(...)`, and can add `limits` and `footer`. An agent with no token data can define `build(now)` and return its own variables, as the Cursor collector does, with templates in `trmnl_plugin/<name>/`. Register it in `agentdash/collectors/__init__.py`. The shared templates and the fleet screen pick it up.
+
+## Develop
+
+```bash
+python3 -m unittest discover -s tests
+
+pip install python-liquid
+python3 -m agentdash --dry-run > payloads.json
+python3 tools/preview.py payloads.json preview/
+```
+
+`tools/preview.py` renders every template with the TRMNL stylesheet so you can check the layouts in a browser.
+
+## Project layout
 
 ```
-claude-dashboard-trmnl/
-  worker/                  # iii worker (recommended)
-    src/index.ts           # Functions, cron triggers, state, TRMNL POST
-    iii-config.yaml        # iii-engine config
-    package.json
-  launchd-setup/           # macOS fallback
-    claude_usage_scraper.py
-    session_stats.py
-    post_trmnl.py
-    run.sh / setup.sh / install.sh / uninstall.sh
-  trmnl_plugin/            # Shared TRMNL templates
-    markup_full.html
-    markup_half_horizontal.html
-    markup_half_vertical.html
-    markup_quadrant.html
-    plugin.yml
-    icon.svg
+agentdash/
+  __main__.py              command line, posts to TRMNL
+  core.py                  records, pricing, totals, file cache
+  pricing.json             price table
+  collectors/              one collector per agent
+  statusline_capture.py    saves Claude rate limits and Grok usage from the status line
+  claude_usage_scraper.py  /usage screen fallback
+trmnl_plugin/              templates for one agent, four layouts
+trmnl_plugin/cursor/       templates for Cursor
+trmnl_plugin/fleet/        templates for the fleet screen
+launchd-setup/             macOS scheduler scripts
+tests/
+tools/preview.py
 ```
 
 ## Credits
