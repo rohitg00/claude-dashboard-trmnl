@@ -48,6 +48,9 @@ def run(names, now):
             print(f"[{name}] no local data, skipped", file=sys.stderr)
             continue
         try:
+            if hasattr(collector, "build"):
+                results[name] = collector.build(now)
+                continue
             data = collector.collect(now)
         except Exception as err:
             print(f"[{name}] collect failed: {type(err).__name__}: {err}", file=sys.stderr)

@@ -23,7 +23,7 @@
       {% for a in agents limit: 8 %}
       <tr>
         <td><span class="label">{{ a.name }}</span></td>
-        <td><span class="label">${{ a.week }}</span></td>
+        <td><span class="label">{{ a.week }}</span></td>
         <td><span class="label">{{ a.quota }}</span></td>
       </tr>
       {% endfor %}

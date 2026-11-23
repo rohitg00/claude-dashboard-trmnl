@@ -16,7 +16,7 @@
   </div>
 
   <div class="flex flex--row gap--small">
-    {% for a in agents limit: 3 %}<span class="label {% if forloop.first %}label--filled{% else %}label--small{% endif %}">{{ a.name }} ${{ a.week }}</span>{% endfor %}
+    {% for a in agents limit: 3 %}<span class="label {% if forloop.first %}label--filled{% else %}label--small{% endif %}">{{ a.name }} {{ a.week }}</span>{% endfor %}
   </div>
 
 </div>

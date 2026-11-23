@@ -12,14 +12,17 @@ The screenshot shows the earlier Claude-only layout.
 |---|---|---|---|
 | Claude Code | `~/.claude/projects/**/*.jsonl`, subagent transcripts included | price table | status line capture, or `/usage` screen fallback |
 | Codex | `~/.codex/sessions` and `archived_sessions`, `.jsonl` and `.jsonl.zst` | price table | last `rate_limits` event in the rollouts, plus plan and credits |
-| Grok | `~/.grok/sessions/*/*/summary.json` and `grok usage <session-id>` | reported by Grok | not available from the shell |
+| Grok | status line capture, or `~/.grok/sessions` with `grok usage <session-id>` | reported by Grok | not available from the shell |
+| Cursor | `~/.cursor/ai-tracking/ai-code-tracking.db`, agent transcripts in `~/.cursor/projects` | not stored locally | not stored locally |
 | OpenCode | `~/.local/share/opencode/opencode.db` | reported by OpenCode | none |
 | pi | `~/.pi/agent/sessions/**/*.jsonl` | reported by pi, price table when pi reports 0 | none |
 | Hermes | `~/.hermes/state.db` | reported by Hermes | none |
 
 Everything is read from local files. Nothing is sent anywhere except the TRMNL webhooks you set.
 
-The Grok collector follows the Grok user guide. It has not run against real Grok sessions yet, so check its numbers the first time.
+The Grok collector follows the Grok user guide and is tested against the documented payload. It has not run against a live Grok session yet, so check its numbers the first time.
+
+Cursor keeps no token or cost data on disk. Its screen shows what Cursor does record: how many committed lines were written by AI, how many of those came from Composer and Tab, commits scored, and agent sessions. The AI share is Cursor's own score for each commit, weighted by lines.
 
 ## What each screen shows
 
@@ -51,7 +54,7 @@ python3 -m agentdash --dry-run
 For each agent you want on the display:
 
 1. TRMNL → Plugins → Private Plugin → new. Set the strategy to Webhook.
-2. Paste the four files from `trmnl_plugin/` into the matching markup tabs. The same four files work for every agent.
+2. Paste the four files from `trmnl_plugin/` into the matching markup tabs. The same four files work for every agent except Cursor, which has its own set in `trmnl_plugin/cursor/`.
 3. Copy the webhook URL into `.env` under that agent's variable.
 
 For the fleet screen, do the same with the files in `trmnl_plugin/fleet/`.
@@ -60,6 +63,7 @@ For the fleet screen, do the same with the files in `trmnl_plugin/fleet/`.
 TRMNL_WEBHOOK_URL_CLAUDE=https://trmnl.com/api/custom_plugins/...
 TRMNL_WEBHOOK_URL_CODEX=https://trmnl.com/api/custom_plugins/...
 TRMNL_WEBHOOK_URL_GROK=
+TRMNL_WEBHOOK_URL_CURSOR=
 TRMNL_WEBHOOK_URL_OPENCODE=
 TRMNL_WEBHOOK_URL_PI=
 TRMNL_WEBHOOK_URL_HERMES=
@@ -93,6 +97,18 @@ Claude Code sends `rate_limits` on Pro, Max and Ultra plans, after the first res
 
 With no capture newer than six hours, the collector opens `claude` in a pseudo terminal and reads the `/usage` screen. That path needs `pexpect` and `pyte` (`./setup.sh` installs them) and starts a Claude session on each run. Set `AGENTDASH_CLAUDE_SCRAPE=0` to turn it off.
 
+### Grok usage
+
+Grok sends session tokens and cost to a status line command. Point it at the capture script in `~/.grok/config.toml`:
+
+```toml
+[ui.status_line]
+type = "command"
+command = "python3 /path/to/claude-dashboard-trmnl/agentdash/statusline_capture.py grok"
+```
+
+The script saves what changed since the last call, in five minute steps, so cost lands on the right day. It prints the model and session cost as the status row. Sessions that never had the status line fall back to `grok usage <session-id>`, which gives one total for each session.
+
 ## How the numbers are worked out
 
 - Claude Code writes one transcript line for each content block, so one response can appear several times with the same usage. Each response is counted once, by message ID and request ID, across all files.
@@ -115,11 +131,11 @@ Edit `agentdash/pricing.json` to add or change a price. Set `AGENTDASH_PRICING` 
 | `AGENTDASH_CLAUDE_SCRAPE` | `0` turns off the `/usage` screen fallback |
 | `AGENTDASH_CACHE_DIR` | cache folder, default `~/.cache/agentdash` |
 | `AGENTDASH_PRICING` | path to a different price table |
-| `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `GROK_HOME`, `HERMES_HOME`, `PI_CODING_AGENT_DIR` | data folder overrides |
+| `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `GROK_HOME`, `CURSOR_HOME`, `HERMES_HOME`, `PI_CODING_AGENT_DIR` | data folder overrides |
 
 ## Add an agent
 
-A collector is a module or class in `agentdash/collectors/` with `NAME`, `LABEL`, `available()` and `collect(now)`. `collect` returns `{"records": [...]}` built with `core.record(...)`, and can add `limits` and `footer`. Register it in `agentdash/collectors/__init__.py`. The shared templates and the fleet screen pick it up.
+A collector is a module or class in `agentdash/collectors/` with `NAME`, `LABEL`, `available()` and `collect(now)`. `collect` returns `{"records": [...]}` built with `core.record(...)`, and can add `limits` and `footer`. An agent with no token data can define `build(now)` and return its own variables, as the Cursor collector does, with templates in `trmnl_plugin/<name>/`. Register it in `agentdash/collectors/__init__.py`. The shared templates and the fleet screen pick it up.
 
 ## Develop
 
@@ -141,9 +157,10 @@ agentdash/
   core.py                  records, pricing, totals, file cache
   pricing.json             price table
   collectors/              one collector per agent
-  statusline_capture.py    saves Claude rate limits from the status line
+  statusline_capture.py    saves Claude rate limits and Grok usage from the status line
   claude_usage_scraper.py  /usage screen fallback
 trmnl_plugin/              templates for one agent, four layouts
+trmnl_plugin/cursor/       templates for Cursor
 trmnl_plugin/fleet/        templates for the fleet screen
 launchd-setup/             macOS scheduler scripts
 tests/

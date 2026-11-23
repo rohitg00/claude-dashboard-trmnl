@@ -34,7 +34,7 @@ def binary():
 
 
 def available():
-    return (home() / "sessions").is_dir() and binary() is not None
+    return (home() / "sessions").is_dir() or (core.cache_dir() / "grok_status").is_dir()
 
 
 def pick(obj, names):
@@ -82,7 +82,41 @@ def parse_file(path):
     return ([rec] if rec and rec[core.T] else []), None
 
 
+def status_records():
+    records = []
+    sessions = set()
+    for path in glob.glob(str(core.cache_dir() / "grok_status" / "*.json")):
+        state = core.read_json(path)
+        if not state:
+            continue
+        session = state.get("session")
+        sessions.add(session)
+        project = os.path.basename(str(state.get("cwd") or "").rstrip("/"))
+        for bucket, (inp, out, cr, cw, cost) in state.get("buckets", {}).items():
+            records.append(
+                core.record(
+                    f"{session}:{bucket}",
+                    float(bucket),
+                    state.get("model"),
+                    inp,
+                    out,
+                    cr,
+                    cw,
+                    cost=cost if state.get("priced") else None,
+                    session=session,
+                    project=project,
+                )
+            )
+    return records, sessions
+
+
 def collect(now):
-    paths = glob.glob(str(home() / "sessions" / "*" / "*" / "summary.json"))
-    files = core.cached_files(NAME, sorted(paths), parse_file)
-    return {"records": [rec for key in sorted(files) for rec in files[key]["r"]]}
+    records, captured = status_records()
+    paths = [
+        path
+        for path in glob.glob(str(home() / "sessions" / "*" / "*" / "summary.json"))
+        if os.path.basename(os.path.dirname(path)) not in captured
+    ]
+    files = core.cached_files(NAME, sorted(paths), parse_file) if binary() else {}
+    records.extend(rec for key in sorted(files) for rec in files[key]["r"])
+    return {"records": records}

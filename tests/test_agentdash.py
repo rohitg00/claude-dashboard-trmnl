@@ -14,7 +14,8 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from agentdash import core
-from agentdash.collectors import claude, codex, pi
+from agentdash import statusline_capture
+from agentdash.collectors import claude, codex, cursor, grok, pi
 from agentdash.collectors.sqlite_agents import Hermes, OpenCode
 
 NOW = datetime(2026, 11, 23, 15, 0, 0)
@@ -328,6 +329,92 @@ class OtherAgentsTest(Base):
         out, _ = core.aggregate("pi", "pi", records, NOW)
         self.assertEqual(out["today_cost"], "4.42")
         self.assertEqual(out["note"], "")
+
+
+class GrokTest(Base):
+    def payload(self, inp, out, cached, cost=None):
+        data = {
+            "session_id": "sess-1",
+            "cwd": "/x/demo",
+            "model": {"id": "grok-code"},
+            "context_window": {
+                "session_usage": {
+                    "input_tokens": inp,
+                    "output_tokens": out,
+                    "cache_read_input_tokens": cached,
+                    "cache_creation_input_tokens": 0,
+                }
+            },
+        }
+        if cost is not None:
+            data["cost"] = {"total_cost_usd": cost}
+        return data
+
+    def test_status_line_deltas_buckets_and_restart(self):
+        os.environ["GROK_HOME"] = str(self.tmp / "grok")
+        t0 = NOW.timestamp()
+        statusline_capture.capture_grok(self.payload(100, 10, 1000, 0.5), t0)
+        statusline_capture.capture_grok(self.payload(100, 10, 1000, 0.5), t0 + 5)
+        statusline_capture.capture_grok(self.payload(300, 30, 4000, 1.25), t0 + 10)
+        statusline_capture.capture_grok(self.payload(50, 5, 0, 0.1), t0 + 86400)
+        statusline_capture.capture_grok({"session_id": "idle"}, t0)
+        self.assertTrue(grok.available())
+        records = sorted(grok.collect(NOW)["records"], key=lambda r: r[core.T])
+        self.assertEqual(len(records), 2)
+        first, second = records
+        self.assertEqual((first[core.I], first[core.O], first[core.CR], first[core.S], first[core.P]), (300, 30, 4000, "sess-1", "demo"))
+        self.assertAlmostEqual(first[core.COST], 1.25)
+        self.assertEqual((second[core.I], second[core.O]), (50, 5))
+        self.assertAlmostEqual(second[core.COST], 0.1)
+
+    def test_missing_cost_stays_unknown(self):
+        statusline_capture.capture_grok(self.payload(100, 10, 0), NOW.timestamp())
+        (rec,) = grok.collect(NOW)["records"]
+        self.assertIsNone(rec[core.COST])
+        out, _ = core.aggregate("grok", "Grok", [rec], NOW)
+        self.assertEqual((out["today_cost"], out["unpriced_models"]), ("0.00", ["grok-code"]))
+
+
+class CursorTest(Base):
+    def test_authorship_sessions_and_fleet_row(self):
+        os.environ["CURSOR_HOME"] = str(self.tmp / "cursor")
+        os.environ["CURSOR_APP_STATE"] = str(self.tmp / "missing.vscdb")
+        root = self.tmp / "cursor"
+        (root / "ai-tracking").mkdir(parents=True)
+        conn = sqlite3.connect(root / "ai-tracking" / "ai-code-tracking.db")
+        conn.execute(
+            "create table scored_commits (commitHash text, branchName text, scoredAt integer, commitDate text, linesAdded integer, "
+            "tabLinesAdded integer, composerLinesAdded integer, humanLinesAdded integer, blankLinesAdded integer, v2AiPercentage text)"
+        )
+        ms = int(NOW.timestamp() * 1000)
+        stamp = NOW.astimezone().strftime("%a %b %d %H:%M:%S %Y %z")
+        old = (NOW - timedelta(days=60)).astimezone().strftime("%a %b %d %H:%M:%S %Y %z")
+        rows = [
+            ("c1", "main", ms - 5, stamp, 100, 10, 40, 30, 20, "50.00"),
+            ("c1", "feature", ms, stamp, 100, 10, 40, 30, 20, "50.00"),
+            ("c2", "main", ms, old, 200, 0, 0, 0, 0, "100.00"),
+            ("c3", "main", ms, "", 10, 0, 0, 10, 0, "0.00"),
+        ]
+        conn.executemany("insert into scored_commits values (?,?,?,?,?,?,?,?,?,?)", rows)
+        conn.commit()
+        conn.close()
+        user = {"role": "user", "message": {}}
+        write_lines(root / "projects" / "p1" / "agent-transcripts" / "s1" / "s1.jsonl", [user, {"role": "assistant"}, user])
+        write_lines(root / "projects" / "p1" / "agent-transcripts" / "s1" / "subagents" / "a.jsonl", [user])
+        write_lines(root / "projects" / "p1" / "agent-transcripts" / "s2" / "s2.jsonl", [user])
+        (root / "cli-config.json").write_text(json.dumps({"model": {"displayName": "Auto"}}))
+
+        self.assertTrue(cursor.available())
+        out, raw = cursor.build(datetime.now())
+        self.assertEqual((out["commits_all"], out["commits_today"], out["commits_month"]), ("3", "2", "2"))
+        self.assertEqual((out["lines_all"], out["ai_pct_all"], out["ai_pct_month"]), ("310", "81", "45"))
+        self.assertEqual((out["composer_lines"], out["tab_lines"], out["human_lines"], out["other_lines"]), ("40", "10", "40", "200"))
+        self.assertEqual((out["cursor_pct"], out["all_sessions"], out["turns_all"], out["sessions_today"]), ("17", "2", "4", "2"))
+        self.assertEqual((out["model"], out["footer"], out["streak"]), ("Auto", "Auto", "1"))
+        priced = core.aggregate("a", "A", [core.record("1", time.time(), "claude-opus-5-5", 1_000_000)], use_ledger=False)
+        rows = {r["name"]: r for r in core.fleet([(out, raw), priced])["agents"]}
+        self.assertEqual((rows["Cursor"]["today"], rows["Cursor"]["tokens"], rows["Cursor"]["model"]), ("—", "—", "Auto"))
+        self.assertEqual(rows["A"]["today"], "$4.00")
 
 
 if __name__ == "__main__":

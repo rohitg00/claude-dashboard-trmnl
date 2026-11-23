@@ -389,6 +389,7 @@ def aggregate(agent, label, records, now=None, limits=None, extra=None, footer="
         "today_tokens": t_in + t_out + t_cr + t_cw,
         "active_now": int(out["active_now"]),
         "top_limit": max([l["pct"] for l in lims] + [0]) if lims else None,
+        "model": primary["name"],
     }
     return out, raw
 
@@ -397,15 +398,22 @@ def fleet(results, now=None):
     now = now or datetime.now()
     rows = []
     for vars_, raw in results:
+        if raw.get("no_usage"):
+            today = week = month = tokens = "—"
+        else:
+            today = "$" + vars_["today_cost"]
+            week = "$" + vars_["week_cost"]
+            month = "$" + vars_["month_cost"]
+            tokens = vars_["today_tokens"]
         rows.append(
             {
                 "name": vars_["agent_name"],
-                "today": vars_["today_cost"],
-                "week": vars_["week_cost"],
-                "month": vars_["month_cost"],
-                "tokens": vars_["today_tokens"],
+                "today": today,
+                "week": week,
+                "month": month,
+                "tokens": tokens,
                 "run": vars_["active_now"],
-                "model": vars_["primary_model"],
+                "model": raw["model"],
                 "quota": "—" if raw["top_limit"] is None else f"{raw['top_limit']}%",
                 "_sort": raw["week_cost"],
                 "_tok": raw["today_tokens"],

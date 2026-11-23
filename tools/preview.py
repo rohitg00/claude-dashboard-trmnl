@@ -21,7 +21,8 @@ LAYOUTS = {
 
 
 def template_dir(name):
-    return ROOT / "trmnl_plugin" / "fleet" if name == "fleet" else ROOT / "trmnl_plugin"
+    own = ROOT / "trmnl_plugin" / name
+    return own if own.is_dir() else ROOT / "trmnl_plugin"
 
 
 def main():
