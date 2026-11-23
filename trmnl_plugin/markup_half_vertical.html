@@ -3,7 +3,7 @@
   <div class="flex flex--col flex--stretch-x">
     <span class="label label--filled">TODAY</span>
     <span class="value value--small lg:value--large lg:portrait:value--small">${{ today_cost }}</span>
-    <span class="description">{{ cost_trend }} vs yesterday</span>
+    {% if cost_trend and cost_trend != "—" %}<span class="description">{{ cost_trend }} vs yesterday</span>{% endif %}
   </div>
 
   <div class="grid grid--cols-2">
@@ -45,31 +45,31 @@
 
   <div class="grid grid--cols-3 lg:grid--cols-2 lg:portrait:grid--cols-3">
     <div class="flex flex--col flex--stretch-x">
-      <span class="value value--xxsmall lg:value--small">{{ today_tokens }}</span>
       <span class="label label--small">Tokens</span>
+      <span class="value value--xxsmall lg:value--small">{{ today_tokens }}</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="value value--xxsmall lg:value--small">{{ today_msgs }}</span>
       <span class="label label--small">Requests</span>
+      <span class="value value--xxsmall lg:value--small">{{ today_msgs }}</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="value value--xxsmall lg:value--small">{{ cache_pct }}%</span>
       <span class="label label--small">Cache</span>
+      <span class="value value--xxsmall lg:value--small">{{ cache_pct }}%</span>
     </div>
   </div>
 
   <div class="grid grid--cols-3 lg:grid--cols-2 lg:portrait:grid--cols-3">
     <div class="flex flex--col flex--stretch-x">
-      <span class="value value--xxsmall lg:value--small">{{ active_now }}</span>
       <span class="label label--small">Running</span>
+      <span class="value value--xxsmall lg:value--small">{{ active_now }}</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="value value--xxsmall lg:value--small">{{ sessions_today }}</span>
       <span class="label label--small">Today</span>
+      <span class="value value--xxsmall lg:value--small">{{ sessions_today }}</span>
     </div>
     <div class="flex flex--col flex--stretch-x">
-      <span class="value value--xxsmall lg:value--small">{{ all_sessions }}</span>
       <span class="label label--small">Total</span>
+      <span class="value value--xxsmall lg:value--small">{{ all_sessions }}</span>
     </div>
   </div>
 
