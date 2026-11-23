@@ -202,8 +202,25 @@ class ClaudeTest(Base):
             check=True,
             env=dict(os.environ),
         )
-        limits = claude.collect(datetime.now())["limits"]
-        self.assertEqual([(l["label"], l["pct"]) for l in limits], [("5h", 42), ("Week", 9)])
+        data = claude.collect(datetime.now())
+        self.assertEqual([(l["label"], l["pct"]) for l in data["limits"]], [("5h", 42), ("Week", 9)])
+        self.assertEqual((data["extra"]["session_pct"], data["extra"]["week_all_pct"]), ("42", "9"))
+
+    def test_published_markup_variables_are_still_sent(self):
+        os.environ["CLAUDE_CONFIG_DIR"] = str(self.tmp / "claude")
+        proj = self.tmp / "claude" / "projects" / "p"
+        now = datetime.now()
+        write_lines(proj / "s.jsonl", [self.line("m1", 5, now), self.line("m2", 5, now, "claude-sonnet-5-5")])
+        data = claude.collect(now)
+        out, _ = core.aggregate("claude", "Claude Code", data["records"], now, extra=data["extra"])
+        used = (ROOT / "tests" / "published_markup_variables.txt").read_text().split()
+        self.assertEqual([name for name in used if name not in out], [])
+        self.assertEqual((out["opus_pct"], out["sonnet_pct"], out["haiku_pct"]), ("50", "50", "0"))
+        lims = [core.limit("5h", 7, None, now, "5pm"), core.limit("Extra $42.30/$50.00", 84, None, now, "May 1")]
+        legacy = claude.legacy_variables([], lims, 3, 2, now)
+        self.assertEqual((legacy["session_pct"], legacy["session_reset_short"]), ("7", "5pm"))
+        self.assertEqual((legacy["extra_spent"], legacy["extra_limit"], legacy["extra_pct"]), ("42.30", "50.00", "84"))
+        self.assertEqual((legacy["plugin_count"], legacy["mcp_count"]), ("3", "2"))
 
 
 class CodexTest(Base):

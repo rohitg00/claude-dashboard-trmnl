@@ -58,13 +58,13 @@
   </div>
 
   <div class="flex flex--row gap--small">
-    {% if models.size > 0 %}<span class="label label--filled">{{ primary_model }}</span>{% endif %}
+    {% if primary_model and primary_model != "—" %}<span class="label label--filled">{{ primary_model }}</span>{% endif %}
     <span class="label label--small">{{ hours_today }} today</span>
   </div>
 
 </div>
 
 <div class="title_bar">
-  <span class="title">{{ agent_name }} &middot; {{ streak }}d streak</span>
+  <span class="title">{{ agent_name | default: "Claude Code" }} &middot; {{ streak }}d streak</span>
   <span class="instance">{{ updated_at }}</span>
 </div>

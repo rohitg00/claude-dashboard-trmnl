@@ -135,13 +135,53 @@ def setup_counts():
     return len(plugins.get("plugins", {}) or {}), len(names)
 
 
+def legacy_variables(records, lims, plugins, mcps, now):
+    out = {
+        "session_pct": "0",
+        "session_reset_short": "—",
+        "week_all_pct": "0",
+        "week_all_reset_short": "—",
+        "extra_pct": "0",
+        "extra_spent": "0",
+        "extra_limit": "0",
+        "plugin_count": str(plugins),
+        "mcp_count": str(mcps),
+    }
+    for lim in lims:
+        if lim["label"] == "5h":
+            out["session_pct"], out["session_reset_short"] = str(lim["pct"]), lim["reset"]
+        elif lim["label"] == "Week":
+            out["week_all_pct"], out["week_all_reset_short"] = str(lim["pct"]), lim["reset"]
+        elif "$" in lim["label"]:
+            spent, _, cap = lim["label"].split("$", 1)[1].partition("/$")
+            out["extra_pct"], out["extra_spent"], out["extra_limit"] = str(lim["pct"]), spent, cap
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).timestamp()
+    families = {"opus": 0, "sonnet": 0, "haiku": 0}
+    total = 0
+    seen = set()
+    for rec in records:
+        if rec[core.T] < month_start or rec[core.K] in seen:
+            continue
+        seen.add(rec[core.K])
+        tokens = rec[core.I] + rec[core.O] + rec[core.CR] + rec[core.CW]
+        total += tokens
+        for family in families:
+            if family in rec[core.M]:
+                families[family] += tokens
+    for family, tokens in families.items():
+        out[f"{family}_pct"] = str(round(tokens / total * 100)) if total else "0"
+    return out
+
+
 def collect(now):
     paths = glob.glob(str(home() / "projects" / "**" / "*.jsonl"), recursive=True)
     files = core.cached_files(NAME, sorted(paths), parse_file)
     records = [rec for key in sorted(files) for rec in files[key]["r"]]
     plugins, mcps = setup_counts()
+    lims = limits(now)
     return {
         "records": records,
-        "limits": limits(now),
+        "limits": lims,
         "footer": f"{plugins} plugins · {mcps} MCPs",
+        "extra": legacy_variables(records, lims, plugins, mcps, now),
     }

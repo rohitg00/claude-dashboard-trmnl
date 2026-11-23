@@ -62,6 +62,7 @@ def run(names, now):
             now,
             limits=data.get("limits"),
             footer=data.get("footer", ""),
+            extra=data.get("extra"),
         )
     return results
 

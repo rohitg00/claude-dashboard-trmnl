@@ -72,6 +72,12 @@ TRMNL_WEBHOOK_URL_FLEET=https://trmnl.com/api/custom_plugins/...
 
 The old `TRMNL_WEBHOOK_URL` still works for Claude. An agent with no variable is collected for the fleet screen and not posted on its own.
 
+### Updating from the Claude-only version
+
+The Claude payload still carries every variable the earlier markup used, so a plugin with the old markup keeps working after you update the scripts. The new markup also renders with the old script. Update either side first.
+
+Costs will drop after the update. The earlier script counted streamed responses more than once and used older prices.
+
 ### Run and schedule
 
 ```bash

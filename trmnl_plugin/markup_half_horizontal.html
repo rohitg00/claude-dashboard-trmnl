@@ -26,7 +26,7 @@
   </div>
 
   <div class="flex flex--row gap--small">
-    {% if models.size > 0 %}<span class="label label--filled">{{ primary_model }}</span>{% endif %}
+    {% if primary_model and primary_model != "—" %}<span class="label label--filled">{{ primary_model }}</span>{% endif %}
     <span class="label label--small">{{ active_now }} running</span>
     <span class="label label--small">&middot;</span>
     <span class="label label--small">{{ cache_pct }}% cache</span>
@@ -37,6 +37,6 @@
 </div>
 
 <div class="title_bar">
-  <span class="title">{{ agent_name }} &middot; {{ streak }}d streak &middot; {{ today_msgs }} reqs</span>
+  <span class="title">{{ agent_name | default: "Claude Code" }} &middot; {{ streak }}d streak &middot; {{ today_msgs }} reqs</span>
   <span class="instance">{{ updated_at }}</span>
 </div>
