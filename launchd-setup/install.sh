@@ -8,21 +8,18 @@ LABEL="com.claude-dashboard-trmnl.agent"
 PLIST="$HOME/Library/LaunchAgents/${LABEL}.plist"
 RUN_SCRIPT="$SCRIPT_DIR/run.sh"
 
-CLAUDE_BIN="$(command -v claude 2>/dev/null || echo "")"
 CLAUDE_PATH_ENTRY=""
-if [ -n "$CLAUDE_BIN" ]; then
-  CLAUDE_PATH_ENTRY="$(dirname "$CLAUDE_BIN"):"
-fi
+for bin in claude grok zstd; do
+  BIN_PATH="$(command -v "$bin" 2>/dev/null || true)"
+  if [ -n "$BIN_PATH" ]; then
+    CLAUDE_PATH_ENTRY="$(dirname "$BIN_PATH"):${CLAUDE_PATH_ENTRY}"
+  fi
+done
 
 echo "=== Installing scheduled job ==="
 echo "  Script: $RUN_SCRIPT"
-echo "  Schedule: every 5 minutes"
+echo "  Schedule: every 10 minutes"
 echo "  Plist: $PLIST"
-
-if [ ! -f venv/bin/activate ]; then
-  echo "ERROR: Run ./setup.sh first."
-  exit 1
-fi
 
 cat > "$PLIST" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -38,7 +35,7 @@ cat > "$PLIST" <<EOF
     <string>${RUN_SCRIPT}</string>
   </array>
   <key>StartInterval</key>
-  <integer>300</integer>
+  <integer>600</integer>
   <key>StandardOutPath</key>
   <string>/tmp/${LABEL}.log</string>
   <key>StandardErrorPath</key>
@@ -67,7 +64,7 @@ launchctl unload "$PLIST" 2>/dev/null || true
 launchctl load "$PLIST"
 
 echo ""
-echo "Installed. The script will run every 5 minutes."
+echo "Installed. The script will run every 10 minutes."
 echo ""
 echo "Useful commands:"
 echo "  launchctl start $LABEL          # run now"

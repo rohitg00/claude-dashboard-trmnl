@@ -1,0 +1,38 @@
+<div class="layout layout--col">
+
+  <div class="grid grid--cols-2">
+    <div class="flex flex--col flex--stretch-x">
+      <span class="label label--filled">TODAY</span>
+      <span class="value value--xxsmall lg:value--small">${{ today_cost }}</span>
+    </div>
+    <div class="flex flex--col flex--stretch-x">
+      <span class="label label--small">Week</span>
+      <span class="value value--xxsmall lg:value--small">${{ week_cost }}</span>
+    </div>
+  </div>
+
+  <table class="table table--condensed">
+    <thead>
+      <tr>
+        <th><span class="title title--small">Agent</span></th>
+        <th><span class="title title--small">Week</span></th>
+        <th><span class="title title--small">Limit</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in agents limit: 8 %}
+      <tr>
+        <td><span class="label">{{ a.name }}</span></td>
+        <td><span class="label">${{ a.week }}</span></td>
+        <td><span class="label">{{ a.quota }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</div>
+
+<div class="title_bar">
+  <span class="title">Agent Fleet &middot; {{ active_now }} running</span>
+  <span class="instance">{{ updated_at }}</span>
+</div>

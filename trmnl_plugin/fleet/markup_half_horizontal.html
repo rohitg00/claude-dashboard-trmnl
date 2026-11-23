@@ -1,0 +1,31 @@
+<div class="layout layout--col">
+
+  <table class="table table--condensed">
+    <thead>
+      <tr>
+        <th><span class="title title--small">Agent</span></th>
+        <th><span class="title title--small">Today</span></th>
+        <th><span class="title title--small">Week</span></th>
+        <th><span class="title title--small">Tokens</span></th>
+        <th><span class="title title--small">Limit</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in agents limit: 4 %}
+      <tr>
+        <td><span class="label">{{ a.name }}</span></td>
+        <td><span class="label">${{ a.today }}</span></td>
+        <td><span class="label">${{ a.week }}</span></td>
+        <td><span class="label">{{ a.tokens }}</span></td>
+        <td><span class="label">{{ a.quota }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</div>
+
+<div class="title_bar">
+  <span class="title">Agent Fleet &middot; ${{ today_cost }} today &middot; ${{ week_cost }}/wk</span>
+  <span class="instance">{{ updated_at }}</span>
+</div>

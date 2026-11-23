@@ -1,0 +1,54 @@
+<div class="layout layout--col">
+
+  <div class="grid grid--cols-4 lg:grid--cols-2 lg:portrait:grid--cols-4">
+    <div class="flex flex--col flex--stretch-x">
+      <span class="label label--filled">TODAY</span>
+      <span class="value value--small lg:value--large lg:portrait:value--small">${{ today_cost }}</span>
+    </div>
+    <div class="flex flex--col flex--stretch-x">
+      <span class="label label--small">Week</span>
+      <span class="value value--small lg:value--large lg:portrait:value--small">${{ week_cost }}</span>
+    </div>
+    <div class="flex flex--col flex--stretch-x">
+      <span class="label label--small">Month</span>
+      <span class="value value--small lg:value--large lg:portrait:value--small">${{ month_cost }}</span>
+    </div>
+    <div class="flex flex--col flex--stretch-x">
+      <span class="label label--small">Tokens Today</span>
+      <span class="value value--small lg:value--large lg:portrait:value--small">{{ today_tokens }}</span>
+    </div>
+  </div>
+
+  <table class="table table--condensed">
+    <thead>
+      <tr>
+        <th><span class="title title--small">Agent</span></th>
+        <th><span class="title title--small">Today</span></th>
+        <th><span class="title title--small">Week</span></th>
+        <th><span class="title title--small">Month</span></th>
+        <th><span class="title title--small">Tokens</span></th>
+        <th><span class="title title--small">Limit</span></th>
+        <th><span class="title title--small">Run</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in agents limit: 8 %}
+      <tr>
+        <td><span class="label">{{ a.name }}</span></td>
+        <td><span class="label">${{ a.today }}</span></td>
+        <td><span class="label">${{ a.week }}</span></td>
+        <td><span class="label">${{ a.month }}</span></td>
+        <td><span class="label">{{ a.tokens }}</span></td>
+        <td><span class="label">{{ a.quota }}</span></td>
+        <td><span class="label">{{ a.run }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</div>
+
+<div class="title_bar">
+  <span class="title">Agent Fleet &middot; {{ agent_count }} agents &middot; {{ active_now }} running</span>
+  <span class="instance">{{ updated_at }}</span>
+</div>

@@ -1,16 +1,15 @@
 - keyname: webhook_url
   field_type: copyable_webhook_url
   name: Webhook URL
-  description: "Copy this URL into your <code>.env</code> file as TRMNL_WEBHOOK_URL."
+  description: "Copy this URL into your <code>.env</code> file as TRMNL_WEBHOOK_URL_&lt;AGENT&gt;."
 
 - keyname: about
   field_type: author_bio
-  name: Claude Code Dashboard
+  name: Coding Agent Dashboard
   description: >
-    Full dashboard for Claude Code on e-ink. Shows rate limit bars (session,
-    weekly all-models, weekly Sonnet), cost tracking (today, week, month),
-    active sessions, token counts, top model usage. Parses your local
-    Claude Code session files for cost data — no external services needed.
+    Usage dashboard for a coding agent on e-ink: cost today, week and month,
+    rate limit bars, tokens, sessions and model mix. Works for Claude Code,
+    Codex, Grok, OpenCode, pi and Hermes. Reads local session files only.
     See the <a href="https://github.com/rohitg00/claude-dashboard-trmnl">setup guide</a>.
   category: programming,productivity
   github_url: "https://github.com/rohitg00/claude-dashboard-trmnl"

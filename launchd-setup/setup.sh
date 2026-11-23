@@ -4,17 +4,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-echo "=== Claude Dashboard TRMNL — Setup ==="
+echo "=== Agent dashboards for TRMNL: setup ==="
 
 if ! command -v python3 &>/dev/null; then
   echo "ERROR: python3 not found. Install Python 3 first."
   exit 1
-fi
-
-if ! command -v claude &>/dev/null; then
-  echo "WARNING: claude not found in PATH."
-  echo "  Install Claude Code: https://docs.anthropic.com/en/docs/claude-code"
-  echo "  The scraper will fail without it."
 fi
 
 echo "Creating Python virtual environment..."
@@ -24,25 +18,14 @@ pip install --quiet --upgrade pip
 pip install --quiet -r requirements.txt
 echo "  Installed: $(pip list --format=freeze | grep -E 'pexpect|pyte' | tr '\n' ' ')"
 
-if [ ! -f .env ]; then
-  echo ""
-  echo "WARNING: .env file not found."
-  echo "  cp .env.example .env"
-  echo "  Then add your TRMNL_WEBHOOK_URL."
-else
-  source .env 2>/dev/null || true
-  if [ -z "${TRMNL_WEBHOOK_URL:-}" ]; then
-    echo "WARNING: TRMNL_WEBHOOK_URL is empty in .env"
-  else
-    echo "  TRMNL webhook: configured"
-  fi
-  if [ -n "${RIMURU_URL:-}" ]; then
-    echo "  Rimuru URL: $RIMURU_URL"
-  fi
-fi
+echo ""
+echo "Agents with local data:"
+(cd "$SCRIPT_DIR/.." && python3 -m agentdash --list)
 
 echo ""
 echo "Setup complete. Next steps:"
-echo "  1. Edit .env with your TRMNL webhook URL"
-echo "  2. Run: ./run.sh (test the pipeline)"
-echo "  3. Run: ./install.sh (schedule every 5 min)"
+echo "  1. Create one TRMNL private plugin per agent and put each webhook URL in .env"
+echo "     as TRMNL_WEBHOOK_URL_<AGENT> (see README)"
+echo "  2. Run: ./run.sh --dry-run (inspect the payloads)"
+echo "  3. Run: ./run.sh (post once)"
+echo "  4. Run: ./install.sh (schedule every 10 min)"

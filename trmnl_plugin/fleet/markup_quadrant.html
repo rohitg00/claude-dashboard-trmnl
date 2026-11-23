@@ -1,0 +1,27 @@
+<div class="layout layout--col">
+
+  <div class="grid grid--cols-3 lg:grid--cols-2 lg:portrait:grid--cols-1">
+    <div class="flex flex--col flex--stretch-x">
+      <span class="label label--filled">TODAY</span>
+      <span class="value value--xxsmall lg:value--small">${{ today_cost }}</span>
+    </div>
+    <div class="flex flex--col flex--stretch-x">
+      <span class="label label--small">Week</span>
+      <span class="value value--xxsmall lg:value--small">${{ week_cost }}</span>
+    </div>
+    <div class="flex flex--col flex--stretch-x">
+      <span class="label label--small">Running</span>
+      <span class="value value--xxsmall lg:value--small">{{ active_now }}</span>
+    </div>
+  </div>
+
+  <div class="flex flex--row gap--small">
+    {% for a in agents limit: 3 %}<span class="label {% if forloop.first %}label--filled{% else %}label--small{% endif %}">{{ a.name }} ${{ a.week }}</span>{% endfor %}
+  </div>
+
+</div>
+
+<div class="title_bar">
+  <span class="title">Agent Fleet</span>
+  <span class="instance">{{ updated_at }}</span>
+</div>

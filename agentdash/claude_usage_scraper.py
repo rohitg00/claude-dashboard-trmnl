@@ -147,6 +147,9 @@ def scrape() -> dict:
     for attempt in range(max_retries):
         if "% used" in final_screen:
             break
+        if "Failed to load usage data" in final_screen:
+            info("Claude /usage backend returned error — skipping retry loop")
+            break
         info(f"Usage data not loaded yet, retrying ({attempt + 1}/{max_retries})…")
         time.sleep(2.0)
         read_pending(child, stream, timeout=2.0)
